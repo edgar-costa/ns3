@@ -12,6 +12,7 @@
 #  * along with this program; if not, write to the Free Software
 #  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #  */
+import sys
 
 import ns.applications
 import ns.core
@@ -57,4 +58,3 @@ clientApps.Stop(ns.core.Seconds(10.0))
 
 ns.core.Simulator.Run()
 ns.core.Simulator.Destroy()
-
