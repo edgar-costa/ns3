@@ -1,6 +1,4 @@
 import subprocess
-MAC = True
-
 
 def _locate_file(file_name):
     """
@@ -83,5 +81,23 @@ def deabsolutize_includes(file_name, special_word):
     subprocess.call(['chmod', '664', file_path])
 
 
-#absolutize_includes("first.cc", "ns3")
-deabsolutize_includes("first.cc", "edgar")
+if __name__ == "__main__":
+
+    import sys
+    MAC = True
+    args = sys.argv[1:]
+    try:
+        file_name = args[0]
+    except:
+        print "Error: file name not given"
+        sys.exit(1)
+    try:
+        action = args[1]
+    except:
+        print "Warning action not given. Default is absoulte"
+        action = "absolute"
+        
+    if action == "absolute":
+        absolutize_includes(file_name=, "ns3")
+    elif action == "relative":
+        deabsolutize_includes(file_name, "edgar")
