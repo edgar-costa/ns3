@@ -6,9 +6,13 @@ def _locate_file(file_name):
     """
     # subprocess.Popen(['sudo', 'updatedb']).wait()
 
-    p = subprocess.Popen(['sudo', 'su', '--', 'edgar', '-c',
-                         'locate -br "{0}"'.format(file_name)],
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # p = subprocess.Popen(['sudo', 'su', '--', 'edgar', '-c',
+    #                      'locate -br "{0}"'.format(file_name)],
+    #                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    p = subprocess.Popen( "find $PWD -type f -name "+
+                         file_name,stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,shell=True)
 
     stdout, stderr = p.communicate()
 
@@ -56,7 +60,7 @@ def absolutize_includes(file_name, special_word):
     subprocess.call(['mv', file_path+"_tmp", file_path])
     # subprocess.call(['rm', file_path+"_tmp"])
     subprocess.call(['chown', 'edgar.edgar', file_path])
-    subprocess.call(['chmod', '664', file_path])
+    subprocess.call(['chmod', '774', file_path])
 
 
 def deabsolutize_includes(file_name, special_word):
@@ -96,8 +100,8 @@ if __name__ == "__main__":
     except:
         print "Warning action not given. Default is absoulte"
         action = "absolute"
-        
+
     if action == "absolute":
-        absolutize_includes(file_name=, "ns3")
+        absolutize_includes(file_name, "ns3")
     elif action == "relative":
         deabsolutize_includes(file_name, "edgar")
