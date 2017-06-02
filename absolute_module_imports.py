@@ -1,5 +1,6 @@
 import subprocess
 
+
 def _locate_file(file_name):
     """
     locate_file
@@ -10,9 +11,9 @@ def _locate_file(file_name):
     #                      'locate -br "{0}"'.format(file_name)],
     #                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    p = subprocess.Popen( "find $PWD -type f -name "+
-                         file_name,stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE,shell=True)
+    p = subprocess.Popen("find $PWD -type f -name " +
+                         file_name, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, shell=True)
 
     stdout, stderr = p.communicate()
 
@@ -49,8 +50,10 @@ def absolutize_includes(file_name, special_word):
             last_file = (line.split("/")[-1])[:-2]
             last_file_absolute_path = get_file_path(last_file)
             if MAC:
-                last_file_absolute_path = last_file_absolute_path.replace("home", "Users")
-                last_file_absolute_path = last_file_absolute_path.replace("ns-allinone-3.26/ns-3.26", "ns3")
+                last_file_absolute_path = last_file_absolute_path.replace(
+                                    "home", "Users")
+                last_file_absolute_path = last_file_absolute_path.replace(
+                                    "ns-allinone-3.26/ns-3.26", "ns3")
 
             f.write('#include "'+last_file_absolute_path+'"\n')
         else:
@@ -88,16 +91,17 @@ def deabsolutize_includes(file_name, special_word):
 if __name__ == "__main__":
 
     import sys
+
     MAC = True
     args = sys.argv[1:]
     try:
         file_name = args[0]
-    except:
+    except Exception:
         print "Error: file name not given"
         sys.exit(1)
     try:
         action = args[1]
-    except:
+    except Exception:
         print "Warning action not given. Default is absoulte"
         action = "absolute"
 

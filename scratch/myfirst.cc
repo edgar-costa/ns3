@@ -14,11 +14,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "/Users/edgar/ns3/build/ns3/core-module.h"
+#include "ns3/core-module.h"
 //#include "ns3/network-module.h"
-#include "/Users/edgar/ns3/build/ns3/internet-module.h"
-#include "/Users/edgar/ns3/build/ns3/point-to-point-module.h"
-#include "/Users/edgar/ns3/build/ns3/applications-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
 
 
 using namespace ns3;
