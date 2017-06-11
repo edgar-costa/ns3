@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+# encoding: ISO8859-1
+# Edgar Costa Molero
+
+
+def find_file_name(arguments):
+    for i,arg in enumerate(arguments):
+        if arg == "--run":
+            file_name = arguments[i+1].split(" ")[0]
+            return file_name
+    return None
+
+if __name__ == "__main__":
+    import sys
+    import subprocess
+    import absolute_module_imports as absolute
+
+    args = sys.argv[1:]
+
+    # tries to find the file of the script we want to run
+    file_name = find_file_name(args)
+
+    if not file_name.endswith(".cc"):
+        file_name += ".cc"
+
+    #deabsulotize
+    absolute.deabsolutize_includes(file_name, "edgar")
+
+    #run normal waf
+    subprocess.Popen(['sudo', './waf']+args).wait()
