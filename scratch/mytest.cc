@@ -21,6 +21,7 @@
 #include "ns3/internet-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/applications-module.h"
+#include "ns3/csma-module.h"
 
 using namespace ns3;
 
@@ -209,12 +210,13 @@ main (int argc, char *argv[])
   NodeContainer nodes;
   nodes.Create (2);
 
-  PointToPointHelper pointToPoint;
-  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("500Mbps"));
-  pointToPoint.SetChannelAttribute ("Delay", StringValue ("1us"));
+  CsmaHelper csma;
+
+  csma.SetChannelAttribute("DataRate", StringValue ("1Mbps"));
+  csma.SetChannelAttribute("Delay", StringValue ("1us"));
 
   NetDeviceContainer devices;
-  devices = pointToPoint.Install (nodes);
+  devices = csma.Install (nodes);
 
   //Ptr<RateErrorModel> em = CreateObject<RateErrorModel> ();
   //em->SetAttribute ("ErrorRate", DoubleValue (0.00001));
@@ -237,7 +239,7 @@ main (int argc, char *argv[])
   Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (nodes.Get (0), TcpSocketFactory::GetTypeId ());
 
   Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3TcpSocket, sinkAddress, 1500, 1000, DataRate ("1.1Gbps"));
+  app->Setup (ns3TcpSocket, sinkAddress, 1500, 1000, DataRate ("1Mbps"));
   nodes.Get (0)->AddApplication (app);
   app->SetStartTime (Seconds (1.));
   app->SetStopTime (Seconds (20.));
@@ -253,9 +255,9 @@ main (int argc, char *argv[])
 
   devices.Get (0)->TraceConnectWithoutContext ("PhyTxDrop", MakeBoundCallback (&TxDrop, "PhyTxDrop"));
   devices.Get (0)->TraceConnectWithoutContext ("MacTxDrop", MakeBoundCallback (&TxDrop, "MacTxDrop" ));
-  devices.Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx"));
+  //devices.Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx"));
 
-  pointToPoint.EnablePcapAll ("mytest");
+  csma.EnablePcapAll ("mytest");
 
 
   Simulator::Stop (Seconds (20));
