@@ -20,6 +20,7 @@ seventh-packet-byte-count.png
 
 \#*#
 ~*
+*~
 
 testpy-output
 
@@ -36,4 +37,5 @@ TAGS
 build-dir/
 build/
 
-
+.project
+.settings/

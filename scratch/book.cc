@@ -84,6 +84,7 @@ int main (int argc, char *argv[])
   NetDeviceContainer devAR, devRB;
   PointToPointHelper AR, RB;
 
+
   // create point-to-point link from A to R
   AR.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (fastBW * 1000 * 1000)));
   AR.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (delayAR)));
