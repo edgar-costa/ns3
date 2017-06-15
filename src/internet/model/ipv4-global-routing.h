@@ -40,6 +40,15 @@ class Ipv4RoutingTableEntry;
 class Ipv4MulticastRoutingTableEntry;
 class Node;
 
+typedef enum
+{
+	ECMP_NONE,
+	ECMP_RANDOM,
+	ECMP_PER_FLOW,
+	ECMP_RR,
+	ECMP_RANDOM_FLOWLET,
+	ECMP_DRILL
+} EcmpMode_t ;
 
 /**
  * \ingroup ipv4
@@ -228,6 +237,10 @@ public:
    */
   int64_t AssignStreams (int64_t stream);
 
+  //Added functions
+  uint64_t GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPayload);
+  uint32_t GetNextInterface(uint32_t);
+
 protected:
   void DoDispose (void);
 
@@ -238,6 +251,10 @@ private:
   bool m_respondToInterfaceEvents;
   /// A uniform random number generator for randomly routing packets among ECMP 
   Ptr<UniformRandomVariable> m_rand;
+
+  //added edgar
+  uint32_t m_lastInterfaceUsed;
+  EcmpMode_t m_ecmpMode;
 
   /// container of Ipv4RoutingTableEntry (routes to hosts)
   typedef std::list<Ipv4RoutingTableEntry *> HostRoutes;
@@ -267,7 +284,10 @@ private:
    * \return Ipv4Route to route the packet to reach dest address
    */
   Ptr<Ipv4Route> LookupGlobal (Ipv4Address dest, Ptr<NetDevice> oif = 0);
+  Ptr<Ipv4Route> LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipPayload, Ptr<NetDevice> oif, bool host);
 
+
+  Hasher hasher;
   HostRoutes m_hostRoutes;             //!< Routes to hosts
   NetworkRoutes m_networkRoutes;       //!< Routes to networks
   ASExternalRoutes m_ASexternalRoutes; //!< External routes imported
