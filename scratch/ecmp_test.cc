@@ -215,7 +215,7 @@ main (int argc, char *argv[])
 
   //Command line arguments
 
-  uint32_t ecmpMode = 0;
+  std::string ecmpMode = "ECMP_NONE";
   std::string protocol = "TCP";
 
   CommandLine cmd;
@@ -226,7 +226,8 @@ main (int argc, char *argv[])
   //Here we should set how things are routed at the ipv4global routing module
   //TODO
 
-  Config::SetDefault("ns3::Ipv4GlobalRouting::RandomEcmpRouting", BooleanValue("True"));
+  //Config::SetDefault("ns3::Ipv4GlobalRouting::RandomEcmpRouting", BooleanValue("True"));
+  Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
 //  Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
 
   //Create nodes
