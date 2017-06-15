@@ -31,11 +31,20 @@
 #include "ipv4-global-routing.h"
 #include "global-route-manager.h"
 
+//ADDED EDGAR
+#include "udp-header.h"
+#include "tcp-header.h"
+#include "ns3/node.h"
+#include "ns3/enum.h"
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("Ipv4GlobalRouting");
 
 NS_OBJECT_ENSURE_REGISTERED (Ipv4GlobalRouting);
+
+const uint8_t TCP_PROT_NUMBER = 6;
+const uint8_t UDP_PROT_NUMBER = 17;
 
 TypeId 
 Ipv4GlobalRouting::GetTypeId (void)
@@ -60,6 +69,11 @@ Ipv4GlobalRouting::GetTypeId (void)
 Ipv4GlobalRouting::Ipv4GlobalRouting () 
   : m_randomEcmpRouting (false),
     m_respondToInterfaceEvents (false)
+		//TODO
+		// add last interface used
+		// add flowlet tablew
+    // add random seed
+
 {
   NS_LOG_FUNCTION (this);
 
