@@ -46,6 +46,7 @@ NS_OBJECT_ENSURE_REGISTERED (Ipv4GlobalRouting);
 const uint8_t TCP_PROT_NUMBER = 6;
 const uint8_t UDP_PROT_NUMBER = 17;
 
+
 TypeId 
 Ipv4GlobalRouting::GetTypeId (void)
 { 
@@ -67,11 +68,18 @@ Ipv4GlobalRouting::GetTypeId (void)
 																	 ECMP_RR, "ECMP_RR",
 																	 ECMP_RANDOM_FLOWLET, "ECMP_RANDOM_FLOWLET",
 																	 ECMP_DRILL, "ECMP_DRILL"))
+
     .AddAttribute ("RespondToInterfaceEvents",
                    "Set to true if you want to dynamically recompute the global routes upon Interface notification events (up/down, or add/remove address)",
                    BooleanValue (false),
                    MakeBooleanAccessor (&Ipv4GlobalRouting::m_respondToInterfaceEvents),
                    MakeBooleanChecker ())
+
+	  .AddAttribute("FlowletGap",
+	  		          "Time Gap between flowlets. In nanoseconds",
+									IntegerValue(50000000),
+									MakeIntegerAccessor(&Ipv4GlobalRouting::m_flowletGap),
+									MakeIntegerChecker<int64_t>())
   ;
   return tid;
 }
@@ -80,15 +88,23 @@ Ipv4GlobalRouting::Ipv4GlobalRouting ()
   : m_randomEcmpRouting (false),
     m_respondToInterfaceEvents (false),
 		m_lastInterfaceUsed(0),
-		m_ecmpMode(ECMP_NONE)
+		m_ecmpMode(ECMP_NONE),
+    m_flowletGap(50000000)
 		//TODO
 		// add flowlet tablew
 
 {
   NS_LOG_FUNCTION (this);
 
+  Simulator::Now ().GetSeconds ();
+
+
   //uniform variable
   m_rand = CreateObject<UniformRandomVariable> ();
+  m_seed = m_rand->GetInteger (0,(uint32_t)-1);
+
+  //NS_LOG_UNCOND("node " << " " << m_seed);
+
   //hasher for ecmp
   hasher = Hasher();
 }
@@ -166,6 +182,7 @@ uint64_t
 Ipv4GlobalRouting::GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPayload)
 {
   NS_LOG_FUNCTION(header);
+
   Ptr<Node> node = m_ipv4->GetObject<Node>();
   //node ID for polarization
   uint32_t node_id = node->GetId();
@@ -175,7 +192,7 @@ Ipv4GlobalRouting::GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPay
   oss << header.GetSource()
       << header.GetDestination()
       << header.GetProtocol()
-      << node_id;
+      << m_seed;
 
   switch (header.GetProtocol())
     {
@@ -223,6 +240,7 @@ Ipv4GlobalRouting::GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPay
   std::string data = oss.str();
   uint32_t hash = hasher.GetHash32(data);
   oss.str("");
+  NS_LOG_UNCOND("hash value node: " << node_id << " " << hash << " seed: " << m_seed);
   return hash;
 }
 
@@ -469,6 +487,42 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 
 					case ECMP_RANDOM_FLOWLET:
 						selectIndex = 0;
+
+						uint64_t key = GetFlowHash(header, ipPayload);
+						flowlet_t flowlet_data;
+
+						if (flowlet_table.count(key) > 0){ //already existing entry
+							flowlet_data = flowlet_table[key];
+
+							//check if the packet gap is bigger than threshold. In that case select a new random port.
+							int64_t now  = Simulator::Now().GetTimeStep();
+							if ((now - flowlet_data.time) > m_flowletGap){
+								//Generate a new random port and update flowlet table
+								selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
+								flowlet_data.time = now; flowlet_data.out_port = selectIndex;
+								flowlet_table[key] = flowlet_data;
+
+							}
+							else{
+								//select port and update flowlet table
+
+								//Here we have to do an extra check. It could be that a packet from a different flow hashed
+								//into the same position. If that happens the output port index could not even exist. So to be sure
+								//we select a valid port we do modulo with all the available routes. However we dont modify entry in the
+								//flowlet table
+								selectIndex = (flowlet_data.out_port % allRoutes.size());
+
+								flowlet_data.time = now;
+								flowlet_table[key] = flowlet_data;
+							}
+						}
+						else { //new entry
+							int64_t now  = Simulator::Now().GetTimeStep();
+							selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
+							flowlet_data.time = now; flowlet_data.out_port = selectIndex;
+							flowlet_table[key] = flowlet_data;
+						}
+
 						break;
 
 					case ECMP_DRILL:

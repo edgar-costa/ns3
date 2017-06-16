@@ -21,6 +21,7 @@
 #define IPV4_GLOBAL_ROUTING_H
 
 #include <list>
+#include <unordered_map>
 #include <stdint.h>
 #include "ns3/ipv4-address.h"
 #include "ns3/ipv4-header.h"
@@ -49,6 +50,11 @@ typedef enum
 	ECMP_RANDOM_FLOWLET,
 	ECMP_DRILL
 } EcmpMode_t ;
+
+typedef struct{
+	int64_t time;
+	uint32_t out_port;
+} flowlet_t;
 
 /**
  * \ingroup ipv4
@@ -251,10 +257,14 @@ private:
   bool m_respondToInterfaceEvents;
   /// A uniform random number generator for randomly routing packets among ECMP 
   Ptr<UniformRandomVariable> m_rand;
+  uint32_t m_seed;
 
   //added edgar
   uint32_t m_lastInterfaceUsed;
   EcmpMode_t m_ecmpMode;
+  int64_t m_flowletGap; //in nanoseconds in theory...
+
+  std::unordered_map<uint16_t, flowlet_t> flowlet_table;
 
   /// container of Ipv4RoutingTableEntry (routes to hosts)
   typedef std::list<Ipv4RoutingTableEntry *> HostRoutes;

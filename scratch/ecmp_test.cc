@@ -201,12 +201,18 @@ RxDrop (Ptr<PcapFileWrapper> file, Ptr<const Packet> p)
 static void
 TxDrop (std::string s, Ptr<const Packet> p){
 	static int counter = 0;
-	NS_LOG_UNCOND (counter++ << " " << s << " at " << Simulator::Now ().GetSeconds ());
+	NS_LOG_UNCOND (counter++ << " " << s << " at " << Simulator::Now ().GetSeconds ()) ;
 }
 
 int
 main (int argc, char *argv[])
 {
+
+	Time::SetResolution (Time::NS);
+
+	//Change that if i want to get different random values each run otherwise i will always get the same.
+	RngSeedManager::SetRun (1);   // Changes run number from default of 1 to 7
+
   //Enable logging
 	//LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
 	//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
@@ -217,10 +223,12 @@ main (int argc, char *argv[])
 
   std::string ecmpMode = "ECMP_NONE";
   std::string protocol = "TCP";
+  uint16_t sinkPort = 8582;
 
   CommandLine cmd;
   cmd.AddValue ("EcmpMode", "EcmpMode: (0 none, 1 random, 2 flow, 3 Round_Robin)", ecmpMode);
   cmd.AddValue("Protocol", "Socket protocol used TCP or UDP. Default is "+protocol , protocol);
+  cmd.AddValue("SinkPort", "Sink port", sinkPort);
   cmd.Parse (argc, argv);
 
   //Here we should set how things are routed at the ipv4global routing module
@@ -232,7 +240,7 @@ main (int argc, char *argv[])
 
   //Create nodes
   NodeContainer nodes;
-  nodes.Create (8);
+  nodes.Create (13);
 
   //Locate nodes for plotting
   for (uint32_t i = 0; i < nodes.GetN(); i++){
@@ -248,32 +256,41 @@ main (int argc, char *argv[])
     	loc->SetPosition(Vector(2,5,0));
     }
     else if (i == 6) {
-    	loc->SetPosition(Vector(8,5,0));
-    }
-    else if (i==7){
     	loc->SetPosition(Vector(10,5,0));
     }
+    else if (i==11){
+    	loc->SetPosition(Vector(18,5,0));
+    }
+    else if (i==12){
+    	loc->SetPosition(Vector(20,5,0));
+    }
+
     else{
-    	loc->SetPosition(Vector(5,1+(2.66*(i-2)),0));
+    	if (i >= 2 and i <=5){
+    		loc->SetPosition(Vector(6,1+(2.66*(i-2)),0));
+    	}
+    	else if (i >= 7 and i <=10){
+    		loc->SetPosition(Vector(14,1+(2.66*(i-7)),0));
+    	}
     }
   }
 
   //Define the csma channel
 
-  CsmaHelper csma;
-  csma.SetChannelAttribute("DataRate", StringValue ("10Mbps"));
-  csma.SetChannelAttribute("Delay", StringValue ("2ms"));
-  csma.SetChannelAttribute("FullDuplex", BooleanValue("True"));
-  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
-  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(100));
+//  CsmaHelper csma;
+//  csma.SetChannelAttribute("DataRate", StringValue ("10Mbps"));
+//  csma.SetChannelAttribute("Delay", StringValue ("2ms"));
+//  csma.SetChannelAttribute("FullDuplex", BooleanValue("True"));
+//  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
+//  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(100));
 
   //Define point to point
-//  PointToPointHelper csma;
-//
-//
-//  // create point-to-point link from A to R
-//  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("10Mbps")));
-//  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(2)));
+  PointToPointHelper csma;
+
+
+  // create point-to-point link from A to R
+  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("10Mbps")));
+  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(2)));
 
   //Install a csma device and channel in our hosts pairs
 
@@ -286,16 +303,33 @@ main (int argc, char *argv[])
   NetDeviceContainer n3n6 = csma.Install (NodeContainer(nodes.Get(3),nodes.Get(6)));
   NetDeviceContainer n4n6 = csma.Install (NodeContainer(nodes.Get(4),nodes.Get(6)));
   NetDeviceContainer n5n6 = csma.Install (NodeContainer(nodes.Get(5),nodes.Get(6)));
-  NetDeviceContainer n6n7 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(7)));
 
-  NetDeviceContainer net_containers[] = {n0n1, n1n2, n1n3, n1n4, n1n5, n2n6, n3n6, n4n6, n5n6, n6n7};
+  NetDeviceContainer n6n7 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(7)));
+  NetDeviceContainer n6n8 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(8)));
+  NetDeviceContainer n6n9 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(9)));
+  NetDeviceContainer n6n10 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(10)));
+  NetDeviceContainer n7n11 = csma.Install (NodeContainer(nodes.Get(7),nodes.Get(11)));
+  NetDeviceContainer n8n11 = csma.Install (NodeContainer(nodes.Get(8),nodes.Get(11)));
+  NetDeviceContainer n9n11 = csma.Install (NodeContainer(nodes.Get(9),nodes.Get(11)));
+  NetDeviceContainer n10n11 = csma.Install (NodeContainer(nodes.Get(10),nodes.Get(11)));
+
+
+  NetDeviceContainer n11n12 = csma.Install (NodeContainer(nodes.Get(11),nodes.Get(12)));
+
+  NetDeviceContainer net_containers[] = {n0n1, n1n2, n1n3, n1n4, n1n5, n2n6, n3n6, n4n6, n5n6,
+  		n6n7, n6n8, n6n9, n6n10, n7n11, n8n11, n9n11, n10n11, n11n12};
+
+
 
   // Install Internet stack and assing ips
   InternetStackHelper stack;
   stack.Install (nodes);
 
+  int array_length = sizeof(net_containers)/sizeof(net_containers[0]);
+  NS_LOG_UNCOND(array_length);
+
   Ipv4AddressHelper address("10.0.1.0", "255.255.255.0");
-  for (uint32_t i=0; i < 10; i++){
+  for (int i=0; i < array_length; i++){
   	address.Assign(net_containers[i]);
   	address.NewNetwork();
   }
@@ -305,11 +339,8 @@ main (int argc, char *argv[])
   Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("node1_tables", std::ios::out);
   Ipv4GlobalRoutingHelper::PrintRoutingTableAt(Seconds(1), nodes.Get(1), routingStream);
 
-  NS_LOG_UNCOND(GetNodeIp(nodes.Get(6)));
-  NS_LOG_UNCOND(GetNodeIp(nodes.Get(7)));
 
   //Prepare sink app
-  uint16_t sinkPort = 8082;
   Ptr<Socket> ns3Socket;
   //had to put an initial value
   PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPort));
@@ -318,25 +349,25 @@ main (int argc, char *argv[])
   if (protocol == "TCP")
   {
     ns3Socket = Socket::CreateSocket (nodes.Get (0), TcpSocketFactory::GetTypeId ());
-    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (7));
+    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (12));
   }
   else
 	{
   	packetSinkHelper.SetAttribute("Protocol",StringValue("ns3::UdpSocketFactory"));
     ns3Socket = Socket::CreateSocket (nodes.Get (0), UdpSocketFactory::GetTypeId ());
-    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (7));
+    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (12));
 	}
 
   sinkApps.Start (Seconds (0.));
   sinkApps.Stop (Seconds (20.));
 
   //Prepare sender
-  Ipv4Address addr = GetNodeIp(nodes.Get(7));
+  Ipv4Address addr = GetNodeIp(nodes.Get(12));
 
   Address sinkAddress (InetSocketAddress (addr, sinkPort));
 
   Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3Socket, sinkAddress, 1200, 550, DataRate ("10Mbps"));
+  app->Setup (ns3Socket, sinkAddress, 1200, 1, DataRate ("10Mbps"));
   nodes.Get (0)->AddApplication (app);
   app->SetStartTime (Seconds (1.));
   app->SetStopTime (Seconds (20.));
@@ -363,7 +394,7 @@ main (int argc, char *argv[])
   //Animation
   AnimationInterface anim("ecmp_test");
   anim.SetMaxPktsPerTraceFile(10000000);
-  for (uint32_t i = 1; i < 7; i++)
+  for (uint32_t i = 1; i < 12; i++)
         anim.UpdateNodeColor(nodes.Get(i), 0, 128, 0);
   anim.EnablePacketMetadata(true);
 
