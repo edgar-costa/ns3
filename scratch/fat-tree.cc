@@ -24,6 +24,7 @@
 #include "ns3/csma-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/netanim-module.h"
+#include "ns3/utils.h"
 
 
 using namespace ns3;
@@ -39,34 +40,8 @@ std::string script_name = file_name;
 int counter = 0;
 
 
-Ipv4Address
-GetNodeIp(Ptr<Node> node)
-{
-  Ptr<Ipv4> ip = node->GetObject<Ipv4> ();
 
-  NS_ASSERT(ip !=0);
-  ObjectVectorValue interfaces;
-  ip->GetAttribute("InterfaceList", interfaces);
-  for(ObjectVectorValue::Iterator j = interfaces.Begin(); j != interfaces.End (); j ++)
-  {
-    Ptr<Ipv4Interface> ipIface = (*j).second->GetObject<Ipv4Interface> ();
-    NS_ASSERT(ipIface != 0);
-    Ptr<NetDevice> device = ipIface->GetDevice();
-    NS_ASSERT(device != 0);
-    Ipv4Address ipAddr = ipIface->GetAddress (0).GetLocal();
-
-    // ignore localhost interface...
-    if (ipAddr == Ipv4Address("127.0.0.1")) {
-      continue;
-    }
-    else {
-      return ipAddr;
-    }
-  }
-
-  return Ipv4Address("127.0.0.1");
-}
-
+///// My appp
 
 class MyApp : public Application
 {
@@ -201,6 +176,8 @@ MyApp::ScheduleTx (void)
     }
 }
 
+//TRACE SINKS
+
 static void
 CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
 {
@@ -221,10 +198,14 @@ TxDrop (std::string s, Ptr<const Packet> p){
 	NS_LOG_UNCOND (counter++ << " " << s << " at " << Simulator::Now ().GetSeconds ()) ;
 }
 
+
 int
 main (int argc, char *argv[])
 {
 
+	//INITIALIZATION
+
+	//Set simulator's time resolution (click)
 	Time::SetResolution (Time::NS);
 
 	//Change that if i want to get different random values each run otherwise i will always get the same.
@@ -236,7 +217,6 @@ main (int argc, char *argv[])
   LogComponentEnable("fat-tree", LOG_ALL);
 
 
-
   //Command line arguments
   std::string ecmpMode = "ECMP_NONE";
   std::string protocol = "TCP";
@@ -244,6 +224,7 @@ main (int argc, char *argv[])
   uint32_t num_packets = 100;
   uint16_t packet_size = 1400;
   uint16_t queue_size = 20;
+  uint32_t flowlet_gap = 50;
 
   CommandLine cmd;
   cmd.AddValue("Protocol", "Socket protocol used TCP or UDP. Default is "+protocol , protocol);
@@ -251,16 +232,20 @@ main (int argc, char *argv[])
   cmd.AddValue("NumPackets", "Sink port", num_packets);
   cmd.AddValue("PacketSize", "Sink port", packet_size);
   cmd.AddValue("QueueSize", "Sink port", queue_size);
+  cmd.AddValue("FlowletGap", "Sink port", flowlet_gap);
+
 
   cmd.Parse (argc, argv);
 
-  //Here we should set how things are routed at the ipv4global routing module
-  //TODO
+  //General default configurations
 
-  //Config::SetDefault("ns3::Ipv4GlobalRouting::RandomEcmpRouting", BooleanValue("True"));
+  //Routing
   Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
-//  Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
-//  Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
+  Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
+  Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", UintegerValue(MilliSeconds(flowlet_gap).GetNanoSeconds()));
+
+  //TCP
+  Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
   Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
   Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
   Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
@@ -397,7 +382,7 @@ main (int argc, char *argv[])
   Address sinkAddress (InetSocketAddress (addr, sinkPort));
 
   Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3Socket, sinkAddress, 1440, 10000, DataRate ("10Gbps"));
+  app->Setup (ns3Socket, sinkAddress, 1440, 100, DataRate ("10Gbps"));
   nodes.Get (0)->AddApplication (app);
   app->SetStartTime (Seconds (1.));
   app->SetStopTime (Seconds (1000.));
@@ -433,6 +418,8 @@ main (int argc, char *argv[])
   Simulator::Run ();
 
   NS_LOG_UNCOND("counter: " << counter);
+
+  NS_LOG_UNCOND("na " << ipToString(155,155,155,155) << " " << NanoSeconds(50));
 
   Simulator::Destroy ();
 

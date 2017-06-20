@@ -304,13 +304,14 @@ main (int argc, char *argv[])
   Ptr<Node> n1 = nodes.Get(0);
   Ptr<NetDevice> p2p = n1->GetDevice(0);
 
+
   PointerValue p2p_queue;
   p2p->GetAttribute("TxQueue", p2p_queue);
   Ptr<Queue> txQueue = p2p_queue.Get<Queue>();
-//
-//  UintegerValue limit;
-//  txQueue->GetAttribute("MaxPackets", limit);
-//  NS_LOG_UNCOND("queue " << limit.Get());
+
+  UintegerValue limit;
+  txQueue->GetAttribute("MaxPackets", limit);
+  NS_LOG_UNCOND("queue " << limit.Get());
 
   int array_length = sizeof(net_containers)/sizeof(net_containers[0]);
   NS_LOG_UNCOND(array_length);
