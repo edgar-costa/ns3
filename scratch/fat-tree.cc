@@ -28,7 +28,7 @@
 
 using namespace ns3;
 
-std::string fileNameRoot = "ecmp_example";    // base name for trace files, etc
+std::string fileNameRoot = "fat-tree";    // base name for trace files, etc
 std::string outputNameRoot = "outputs/" + fileNameRoot;
 
 NS_LOG_COMPONENT_DEFINE (fileNameRoot);
@@ -233,19 +233,25 @@ main (int argc, char *argv[])
   //Enable logging
 	//LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
 	//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
-  LogComponentEnable("ecmp_example", LOG_ALL);
+  LogComponentEnable("fat-tree", LOG_ALL);
+
 
 
   //Command line arguments
-
   std::string ecmpMode = "ECMP_NONE";
   std::string protocol = "TCP";
   uint16_t sinkPort = 8582;
+  uint32_t num_packets = 100;
+  uint16_t packet_size = 1400;
+  uint16_t queue_size = 20;
 
   CommandLine cmd;
-  cmd.AddValue ("EcmpMode", "EcmpMode: (0 none, 1 random, 2 flow, 3 Round_Robin)", ecmpMode);
   cmd.AddValue("Protocol", "Socket protocol used TCP or UDP. Default is "+protocol , protocol);
   cmd.AddValue("SinkPort", "Sink port", sinkPort);
+  cmd.AddValue("NumPackets", "Sink port", num_packets);
+  cmd.AddValue("PacketSize", "Sink port", packet_size);
+  cmd.AddValue("QueueSize", "Sink port", queue_size);
+
   cmd.Parse (argc, argv);
 
   //Here we should set how things are routed at the ipv4global routing module

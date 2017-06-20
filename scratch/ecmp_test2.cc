@@ -251,13 +251,13 @@ main (int argc, char *argv[])
   //Here we should set how things are routed at the ipv4global routing module
   //TODO
 
-  //Config::SetDefault("ns3::Ipv4GlobalRouting::RandomEcmpRouting", BooleanValue("True"));
-  Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
+  Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue("ECMP_RANDOM"));
+//  Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
 //  Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
 //  Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
-  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
-  Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
-  Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
+//  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(150000000));
+//  Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(150000000));
+//  Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
 
 
   //Create nodes
@@ -297,12 +297,12 @@ main (int argc, char *argv[])
     }
   }
 
-  //Define the csma channel
-//
+//  Define the csma channel
+
   CsmaHelper csma;
   csma.SetChannelAttribute("DataRate", StringValue ("10Mbps"));
   csma.SetChannelAttribute("Delay", StringValue ("0.5ms"));
-  csma.SetChannelAttribute("FullDuplex", BooleanValue("True"));
+//  csma.SetChannelAttribute("FullDuplex", BooleanValue("True"));
   csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
   csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(100));
 
@@ -311,7 +311,7 @@ main (int argc, char *argv[])
 //////
 ////
 //  // create point-to-point link from A to R
-//  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
+//  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("100Mbps")));
 //  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(0.5)));
 //  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
 //  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(1));
@@ -383,7 +383,7 @@ main (int argc, char *argv[])
 	}
 
   sinkApps.Start (Seconds (0.));
-  sinkApps.Stop (Seconds (1000.));
+  sinkApps.Stop (Seconds (20.));
 
   //Prepare sender
   Ipv4Address addr = GetNodeIp(nodes.Get(12));
@@ -391,10 +391,10 @@ main (int argc, char *argv[])
   Address sinkAddress (InetSocketAddress (addr, sinkPort));
 
   Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3Socket, sinkAddress, 1440, 10000, DataRate ("10Gbps"));
+  app->Setup (ns3Socket, sinkAddress, 1440, 1000, DataRate ("100Mbps"));
   nodes.Get (0)->AddApplication (app);
   app->SetStartTime (Seconds (1.));
-  app->SetStopTime (Seconds (1000.));
+  app->SetStopTime (Seconds (20.));
 
   AsciiTraceHelper asciiTraceHelper;
   Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
@@ -423,7 +423,7 @@ main (int argc, char *argv[])
   anim.EnablePacketMetadata(true);
 
 
-  Simulator::Stop (Seconds (1000));
+  Simulator::Stop (Seconds (20));
   Simulator::Run ();
 
   NS_LOG_UNCOND("counter: " << counter);

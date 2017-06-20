@@ -17,18 +17,20 @@ def split_lines(lines, separator=" "):
     return splited_lines
             
 
-def plot_cwnd(time, cwnd):
+def plot_cwnd(time, cwnd,fig_name):
     plt.plot(time, cwnd, 'ro')
 #    plt.axis([0, float(max(time)), 0, float(max(cwnd))])
+    plt.savefig(fig_name+'.png')
     plt.show()
 
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
+    
     
     time, cwnd = split_lines(stdin_to_lines())
 
-    plot_cwnd(time,cwnd)
+    plot_cwnd(time,cwnd,sys.argv[1])
 
 
 

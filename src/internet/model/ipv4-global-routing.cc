@@ -36,6 +36,7 @@
 #include "tcp-header.h"
 #include "ns3/node.h"
 #include "ns3/enum.h"
+#include "ns3/integer.h"
 
 namespace ns3 {
 
@@ -240,7 +241,7 @@ Ipv4GlobalRouting::GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPay
   std::string data = oss.str();
   uint32_t hash = hasher.GetHash32(data);
   oss.str("");
-  NS_LOG_UNCOND("hash value node: " << node_id << " " << hash << " seed: " << m_seed);
+  //NS_LOG_UNCOND("hash value node: " << node_id << " " << hash << " seed: " << m_seed);
   return hash;
 }
 
@@ -488,7 +489,8 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 					case ECMP_RANDOM_FLOWLET:
 						selectIndex = 0;
 
-						uint64_t key = GetFlowHash(header, ipPayload);
+						uint16_t key;
+						key = GetFlowHash(header, ipPayload);
 						flowlet_t flowlet_data;
 
 						if (flowlet_table.count(key) > 0){ //already existing entry
