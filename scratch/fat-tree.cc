@@ -441,9 +441,6 @@ main (int argc, char *argv[])
   	}
   }
 
-
-
-
   // Install Internet stack and assing ips
   InternetStackHelper stack;
   stack.Install (hosts);
@@ -451,105 +448,58 @@ main (int argc, char *argv[])
   stack.Install (aggRouters);
   stack.Install (coreRouters);
 
-//
-//  Ipv4AddressHelper address("10.0.1.0", "255.255.255.0");
-//  address.Assign(de_t);
-//  address.NewNetwork();
-//
-//
-//  NS_LOG_DEBUG(GetNodeIp(GetNode("h_0_0")));
+
+  //Assign IPS
+
+  Ipv4AddressHelper address("10.0.1.0", "255.255.255.0");
+  for (auto it : links){
+  	address.Assign(it.second);
+  	address.NewNetwork();
+  }
+
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
 
 
-  return 0;
-//
-//
-//  Names::Add("h_0_0", nodes.Get(12));
-//
-//  Ptr<Node> node = Names::Find<Node>(std::string("h_0_0"));
-//
-//  //Install a csma device and channel in our hosts pairs
-//
-//  NetDeviceContainer n0n1 = csma.Install (NodeContainer(nodes.Get(0),nodes.Get(1)));
-//  NetDeviceContainer n1n2 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(2)));
-//  NetDeviceContainer n1n3 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(3)));
-//  NetDeviceContainer n1n4 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(4)));
-//  NetDeviceContainer n1n5 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(5)));
-//  NetDeviceContainer n2n6 = csma.Install (NodeContainer(nodes.Get(2),nodes.Get(6)));
-//  NetDeviceContainer n3n6 = csma.Install (NodeContainer(nodes.Get(3),nodes.Get(6)));
-//  NetDeviceContainer n4n6 = csma.Install (NodeContainer(nodes.Get(4),nodes.Get(6)));
-//  NetDeviceContainer n5n6 = csma.Install (NodeContainer(nodes.Get(5),nodes.Get(6)));
-//
-//  NetDeviceContainer n6n7 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(7)));
-//  NetDeviceContainer n6n8 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(8)));
-//  NetDeviceContainer n6n9 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(9)));
-//  NetDeviceContainer n6n10 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(10)));
-//  NetDeviceContainer n7n11 = csma.Install (NodeContainer(nodes.Get(7),nodes.Get(11)));
-//  NetDeviceContainer n8n11 = csma.Install (NodeContainer(nodes.Get(8),nodes.Get(11)));
-//  NetDeviceContainer n9n11 = csma.Install (NodeContainer(nodes.Get(9),nodes.Get(11)));
-//  NetDeviceContainer n10n11 = csma.Install (NodeContainer(nodes.Get(10),nodes.Get(11)));
-//
-//
-//  NetDeviceContainer n11n12 = csma.Install (NodeContainer(nodes.Get(11),nodes.Get(12)));
-//
-//  NetDeviceContainer net_containers[] = {n0n1, n1n2, n1n3, n1n4, n1n5, n2n6, n3n6, n4n6, n5n6,
-//  		n6n7, n6n8, n6n9, n6n10, n7n11, n8n11, n9n11, n10n11, n11n12};
-//
-//
-//
-//  // Install Internet stack and assing ips
-//  InternetStackHelper stack;
-//  stack.Install (nodes);
-//
-//  int array_length = sizeof(net_containers)/sizeof(net_containers[0]);
-//  NS_LOG_UNCOND(array_length);
-//
-//  Ipv4AddressHelper address("10.0.1.0", "255.255.255.0");
-//  for (int i=0; i < array_length; i++){
-//  	address.Assign(net_containers[i]);
-//  	address.NewNetwork();
-//  }
-//
-//  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
 //
 //  Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("node1_tables", std::ios::out);
 //  Ipv4GlobalRoutingHelper::PrintRoutingTableAt(Seconds(1), nodes.Get(1), routingStream);
 //
 //
 //  //Prepare sink app
-//  Ptr<Socket> ns3Socket;
-//  //had to put an initial value
-//  PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPort));
-//  ApplicationContainer sinkApps;
-//
-//  if (protocol == "TCP")
-//  {
-//    ns3Socket = Socket::CreateSocket (nodes.Get (0), TcpSocketFactory::GetTypeId ());
-//    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (12));
-//  }
-//  else
-//	{
-//  	packetSinkHelper.SetAttribute("Protocol",StringValue("ns3::UdpSocketFactory"));
-//    ns3Socket = Socket::CreateSocket (nodes.Get (0), UdpSocketFactory::GetTypeId ());
-//    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (12));
-//	}
-//
-//  sinkApps.Start (Seconds (0.));
-//  sinkApps.Stop (Seconds (1000.));
-//
-//  //Prepare sender
-////  std::string name = "h_0_0";
-////  Ptr<Node> h0 = Names::Find(std::string("h_0_0"));
-//
-//  Ipv4Address addr = GetNodeIp(node);
-//
-//  Address sinkAddress (InetSocketAddress (addr, sinkPort));
-//
-//  Ptr<MyApp> app = CreateObject<MyApp> ();
-//  app->Setup (ns3Socket, sinkAddress, 1440, 100, DataRate ("10Gbps"));
-//  nodes.Get (0)->AddApplication (app);
-//  app->SetStartTime (Seconds (1.));
-//  app->SetStopTime (Seconds (1000.));
+  Ptr<Socket> ns3Socket;
+  //had to put an initial value
+  PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPort));
+  ApplicationContainer sinkApps;
+
+  if (protocol == "TCP")
+  {
+    ns3Socket = Socket::CreateSocket (GetNode("h_0_0"), TcpSocketFactory::GetTypeId ());
+    ApplicationContainer sinkApps = packetSinkHelper.Install (GetNode("h_1_0"));
+  }
+  else
+	{
+  	packetSinkHelper.SetAttribute("Protocol",StringValue("ns3::UdpSocketFactory"));
+    ns3Socket = Socket::CreateSocket (GetNode("h_0_0"), UdpSocketFactory::GetTypeId ());
+    ApplicationContainer sinkApps = packetSinkHelper.Install (GetNode("h_1_0"));
+	}
+
+  sinkApps.Start (Seconds (0.));
+  sinkApps.Stop (Seconds (1000.));
+
+
+  Ipv4Address addr = GetNodeIp("h_1_0");
+
+  Address sinkAddress (InetSocketAddress (addr, sinkPort));
+
+  Ptr<MyApp> app = CreateObject<MyApp> ();
+  app->Setup (ns3Socket, sinkAddress, 1440, 100, DataRate ("10Mbps"));
+  GetNode("h_0_0")->AddApplication (app);
+  app->SetStartTime (Seconds (1.));
+  app->SetStopTime (Seconds (1000.));
+
+
 //
 //  AsciiTraceHelper asciiTraceHelper;
 //  Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
@@ -569,22 +519,22 @@ main (int argc, char *argv[])
 //  n0n1.Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx"));
 //
 //  csma.EnablePcapAll (outputNameRoot);
-//
-////  //Animation
-////  AnimationInterface anim("ecmp_test");
-////  anim.SetMaxPktsPerTraceFile(10000000);
-////  for (uint32_t i = 1; i < 12; i++)
-////        anim.UpdateNodeColor(nodes.Get(i), 0, 128, 0);
-////  anim.EnablePacketMetadata(true);
-//
-//
-//  Simulator::Stop (Seconds (1000));
-//  Simulator::Run ();
-//
-//  NS_LOG_UNCOND("counter: " << counter);
-//
-//
-//  Simulator::Destroy ();
+
+//  //Animation
+//  AnimationInterface anim("ecmp_test");
+//  anim.SetMaxPktsPerTraceFile(10000000);
+//  for (uint32_t i = 1; i < 12; i++)
+//        anim.UpdateNodeColor(nodes.Get(i), 0, 128, 0);
+//  anim.EnablePacketMetadata(true);
+
+
+  Simulator::Stop (Seconds (1000));
+  Simulator::Run ();
+
+  NS_LOG_UNCOND("counter: " << counter);
+
+
+  Simulator::Destroy ();
 
 
   return 0;
