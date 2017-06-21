@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <string>
+#include <iostream>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -224,15 +225,26 @@ main (int argc, char *argv[])
   uint32_t num_packets = 100;
   uint16_t packet_size = 1400;
   uint16_t queue_size = 20;
-  uint32_t flowlet_gap = 50;
+  int64_t flowlet_gap = 50;
+
+
+  //Fat tree parameters
+  int k =  4;
+  DataRate dataRate("10Mbps");
 
   CommandLine cmd;
-  cmd.AddValue("Protocol", "Socket protocol used TCP or UDP. Default is "+protocol , protocol);
+  cmd.AddValue("Protocol", "Protocol used by the traffic Default is: "+protocol , protocol);
   cmd.AddValue("SinkPort", "Sink port", sinkPort);
   cmd.AddValue("NumPackets", "Sink port", num_packets);
   cmd.AddValue("PacketSize", "Sink port", packet_size);
+
+
+	cmd.AddValue("dataRate", "Bandwidth of link, used in multiple experiments", dataRate);
   cmd.AddValue("QueueSize", "Sink port", queue_size);
   cmd.AddValue("FlowletGap", "Sink port", flowlet_gap);
+
+
+  cmd.AddValue("K", "Fat tree size", k);
 
 
   cmd.Parse (argc, argv);
@@ -242,7 +254,7 @@ main (int argc, char *argv[])
   //Routing
   Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
   Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
-  Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", UintegerValue(MilliSeconds(flowlet_gap).GetNanoSeconds()));
+  Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", IntegerValue(MilliSeconds(flowlet_gap).GetNanoSeconds()));
 
   //TCP
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
@@ -250,48 +262,12 @@ main (int argc, char *argv[])
   Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
   Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
 
-
-  //Create nodes
-  NodeContainer nodes;
-  nodes.Create (13);
-
-  //Locate nodes for plotting
-  for (uint32_t i = 0; i < nodes.GetN(); i++){
-  	// Creates location object
-    Ptr<ConstantPositionMobilityModel> loc = CreateObject<ConstantPositionMobilityModel>();
-    // Aggregates position to node object
-    nodes.Get(i)->AggregateObject(loc);
-
-    if (i == 0){
-    	loc->SetPosition(Vector(0,5,0));
-    }
-    else if (i == 1){
-    	loc->SetPosition(Vector(2,5,0));
-    }
-    else if (i == 6) {
-    	loc->SetPosition(Vector(10,5,0));
-    }
-    else if (i==11){
-    	loc->SetPosition(Vector(18,5,0));
-    }
-    else if (i==12){
-    	loc->SetPosition(Vector(20,5,0));
-    }
-
-    else{
-    	if (i >= 2 and i <=5){
-    		loc->SetPosition(Vector(6,1+(2.66*(i-2)),0));
-    	}
-    	else if (i >= 7 and i <=10){
-    		loc->SetPosition(Vector(14,1+(2.66*(i-7)),0));
-    	}
-    }
-  }
+  //Define Interfaces
 
   //Define the csma channel
-//
+
   CsmaHelper csma;
-  csma.SetChannelAttribute("DataRate", StringValue ("10Mbps"));
+  csma.SetChannelAttribute("DataRate", DataRateValue (dataRate));
   csma.SetChannelAttribute("Delay", StringValue ("0.5ms"));
   csma.SetChannelAttribute("FullDuplex", BooleanValue("True"));
   csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
@@ -299,129 +275,316 @@ main (int argc, char *argv[])
 
   //Define point to point
 //  PointToPointHelper csma;
-//////
-////
-//  // create point-to-point link from A to R
-//  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
+
+  // create point-to-point link from A to R
+//  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (dataRate)));
 //  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(0.5)));
 //  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
 //  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(1));
 
-  //Install a csma device and channel in our hosts pairs
 
-  NetDeviceContainer n0n1 = csma.Install (NodeContainer(nodes.Get(0),nodes.Get(1)));
-  NetDeviceContainer n1n2 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(2)));
-  NetDeviceContainer n1n3 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(3)));
-  NetDeviceContainer n1n4 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(4)));
-  NetDeviceContainer n1n5 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(5)));
-  NetDeviceContainer n2n6 = csma.Install (NodeContainer(nodes.Get(2),nodes.Get(6)));
-  NetDeviceContainer n3n6 = csma.Install (NodeContainer(nodes.Get(3),nodes.Get(6)));
-  NetDeviceContainer n4n6 = csma.Install (NodeContainer(nodes.Get(4),nodes.Get(6)));
-  NetDeviceContainer n5n6 = csma.Install (NodeContainer(nodes.Get(5),nodes.Get(6)));
+  //Compute Fat Tree Devices
 
-  NetDeviceContainer n6n7 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(7)));
-  NetDeviceContainer n6n8 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(8)));
-  NetDeviceContainer n6n9 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(9)));
-  NetDeviceContainer n6n10 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(10)));
-  NetDeviceContainer n7n11 = csma.Install (NodeContainer(nodes.Get(7),nodes.Get(11)));
-  NetDeviceContainer n8n11 = csma.Install (NodeContainer(nodes.Get(8),nodes.Get(11)));
-  NetDeviceContainer n9n11 = csma.Install (NodeContainer(nodes.Get(9),nodes.Get(11)));
-  NetDeviceContainer n10n11 = csma.Install (NodeContainer(nodes.Get(10),nodes.Get(11)));
+  int num_pods = k;
+  int num_hosts = k*k*k/4;
+
+  int num_edges = k*k/2;
+  int num_agg = k*k/2;
+  int num_cores = k*k/4;
+
+  int hosts_per_edge = k/2;
+  int hosts_per_pod = k*k/4;
+  int routers_per_layer = k/2;
+
+  NS_LOG_DEBUG("Num_pods: " << k << " Num Hosts: " << num_hosts << " Num Edges: "
+  		<< num_edges << " Num agg: " << num_agg << " Num Cores: " << num_cores
+			<< " Hosts per pod: " << hosts_per_pod << "  Routers per layer: " << routers_per_layer);
 
 
-  NetDeviceContainer n11n12 = csma.Install (NodeContainer(nodes.Get(11),nodes.Get(12)));
+  //Hosts
+  NodeContainer hosts;
+  hosts.Create(num_hosts);
 
-  NetDeviceContainer net_containers[] = {n0n1, n1n2, n1n3, n1n4, n1n5, n2n6, n3n6, n4n6, n5n6,
-  		n6n7, n6n8, n6n9, n6n10, n7n11, n8n11, n9n11, n10n11, n11n12};
+  //Give names to hosts using names class
+  int pod = 0; int inpod_num = 0; int host_count = 0; int router_count;
+
+  for (NodeContainer::Iterator host = hosts.Begin(); host != hosts.End(); host++ ){
+
+  		inpod_num =  host_count % hosts_per_pod;
+  		pod = host_count / hosts_per_pod;
+
+  		std::stringstream host_name;
+  		host_name << "h_" << pod << "_" << inpod_num;
+  	  NS_LOG_UNCOND(host_name.str());
+
+  		Names::Add(host_name.str(), (*host));
+
+  		host_count++;
+  }
+
+
+  //Edge routers
+  NodeContainer edgeRouters;
+	edgeRouters.Create (num_edges);
+
+  //Give names to hosts using names class
+  pod = 0; inpod_num = 0; router_count = 0;
+  for (NodeContainer::Iterator router = edgeRouters.Begin(); router != edgeRouters.End(); router++ ){
+
+  		inpod_num =  router_count % routers_per_layer;
+  		pod = router_count / routers_per_layer;
+
+  		std::stringstream router_name;
+  		router_name << "r_" << pod << "_e" << inpod_num;
+  	  NS_LOG_UNCOND(router_name.str());
+
+  		Names::Add(router_name.str(), (*router));
+
+  		router_count++;
+  }
+
+  //Agg routers
+  NodeContainer aggRouters;
+	aggRouters.Create (num_agg);
+
+  //Give names to hosts using names class
+  pod = 0; inpod_num = 0; router_count = 0;
+  for (NodeContainer::Iterator router = aggRouters.Begin(); router != aggRouters.End(); router++ ){
+
+  		inpod_num =  router_count % routers_per_layer;
+  		pod = router_count / routers_per_layer;
+
+  		std::stringstream router_name;
+  		router_name << "r_" << pod << "_a" << inpod_num;
+  	  NS_LOG_UNCOND(router_name.str());
+
+  		Names::Add(router_name.str(), (*router));
+
+  		router_count++;
+  }
+
+
+  //Core routers
+  NodeContainer coreRouters;
+	coreRouters.Create (num_cores);
+
+  //Give names to hosts using names class
+  router_count = 0;
+  for (NodeContainer::Iterator router = coreRouters.Begin(); router != coreRouters.End(); router++ ){
+
+  		std::stringstream router_name;
+  		router_name << "r_c"  <<router_count;
+  	  NS_LOG_UNCOND(router_name.str());
+
+  		Names::Add(router_name.str(), (*router));
+
+  		router_count++;
+  }
+
+
+  //Install net devices between nodes (so add links) would be good to save them somewhere I could maybe use the namesystem or map
+  //Install internet stack to nodes, very easy
+
+  std::unordered_map<std::string, NetDeviceContainer> links;
+
+
+  //Add links between fat tree nodes
+
+  //Create PODs
+
+  for (int pod_i=0; pod_i < num_pods; pod_i ++)
+  {
+
+  	//Connect edges with hosts
+  	for (int edge_i=0; edge_i < routers_per_layer; edge_i++)
+  	{
+  		std::stringstream edge_name;
+  		edge_name << "r_" << pod_i << "_e" << edge_i;
+
+  		for (int host_i=0; host_i < hosts_per_edge; host_i++){
+
+    		std::stringstream host_name;
+    		host_name << "h_" << pod_i << "_" << (host_i + (hosts_per_edge*edge_i));
+
+    		NS_LOG_DEBUG("Adding link between " << host_name.str() << " and " << edge_name.str());
+  		  links[host_name.str()+"->"+edge_name.str()] = csma.Install (NodeContainer(GetNode(host_name.str()),GetNode(edge_name.str())));
+  		}
+
+  		//connect edge with all the agg
+
+  		for (int agg_i = 0; agg_i < routers_per_layer; agg_i++){
+    		std::stringstream agg_name;
+    		agg_name << "r_" << pod_i << "_a" << agg_i;
+
+    		NS_LOG_DEBUG("Adding link between " << edge_name.str() << " and " << agg_name.str());
+  		  links[edge_name.str()+"->"+agg_name.str()] = csma.Install (NodeContainer(GetNode(edge_name.str()),GetNode(agg_name.str())));
+
+  		}
+
+  	}
+
+  	//Connect agg with core layer
+
+		for (int agg_i = 0; agg_i < routers_per_layer; agg_i++){
+  		std::stringstream agg_name;
+  		agg_name << "r_" << pod_i << "_a" << agg_i;
+
+  		//Connect to every k/2 cores
+  		for (int core_i=(agg_i* (k/2)); core_i < ((agg_i+1)*(k/2)) ; core_i++){
+    		std::stringstream core_name;
+    		core_name << "r_c" << core_i;
+
+    		NS_LOG_DEBUG("Adding link between " << agg_name.str() << " and " << core_name.str());
+  		  links[agg_name.str()+"->"+core_name.str()] = csma.Install (NodeContainer(GetNode(agg_name.str()),GetNode(core_name.str())));
+  		}
+
+  	}
+  }
+
 
 
 
   // Install Internet stack and assing ips
   InternetStackHelper stack;
-  stack.Install (nodes);
+  stack.Install (hosts);
+  stack.Install (edgeRouters);
+  stack.Install (aggRouters);
+  stack.Install (coreRouters);
 
-  int array_length = sizeof(net_containers)/sizeof(net_containers[0]);
-  NS_LOG_UNCOND(array_length);
-
-  Ipv4AddressHelper address("10.0.1.0", "255.255.255.0");
-  for (int i=0; i < array_length; i++){
-  	address.Assign(net_containers[i]);
-  	address.NewNetwork();
-  }
-
-  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-
-  Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("node1_tables", std::ios::out);
-  Ipv4GlobalRoutingHelper::PrintRoutingTableAt(Seconds(1), nodes.Get(1), routingStream);
+//
+//  Ipv4AddressHelper address("10.0.1.0", "255.255.255.0");
+//  address.Assign(de_t);
+//  address.NewNetwork();
+//
+//
+//  NS_LOG_DEBUG(GetNodeIp(GetNode("h_0_0")));
 
 
-  //Prepare sink app
-  Ptr<Socket> ns3Socket;
-  //had to put an initial value
-  PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPort));
-  ApplicationContainer sinkApps;
 
-  if (protocol == "TCP")
-  {
-    ns3Socket = Socket::CreateSocket (nodes.Get (0), TcpSocketFactory::GetTypeId ());
-    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (12));
-  }
-  else
-	{
-  	packetSinkHelper.SetAttribute("Protocol",StringValue("ns3::UdpSocketFactory"));
-    ns3Socket = Socket::CreateSocket (nodes.Get (0), UdpSocketFactory::GetTypeId ());
-    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (12));
-	}
-
-  sinkApps.Start (Seconds (0.));
-  sinkApps.Stop (Seconds (1000.));
-
-  //Prepare sender
-  Ipv4Address addr = GetNodeIp(nodes.Get(12));
-
-  Address sinkAddress (InetSocketAddress (addr, sinkPort));
-
-  Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3Socket, sinkAddress, 1440, 100, DataRate ("10Gbps"));
-  nodes.Get (0)->AddApplication (app);
-  app->SetStartTime (Seconds (1.));
-  app->SetStopTime (Seconds (1000.));
-
-  AsciiTraceHelper asciiTraceHelper;
-  Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
-  if (protocol == "TCP"){
-  	ns3Socket->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
-  }
-
-  PcapHelper pcapHelper;
-  Ptr<PcapFileWrapper> file = pcapHelper.CreateFile (outputNameRoot+".pcap", std::ios::out, PcapHelper::DLT_PPP);
-
-
-  n0n1.Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDrop, file));
-
-
-  n0n1.Get (0)->TraceConnectWithoutContext ("PhyTxDrop", MakeBoundCallback (&TxDrop, "PhyTxDrop"));
-  n0n1.Get (0)->TraceConnectWithoutContext ("MacTxDrop", MakeBoundCallback (&TxDrop, "MacTxDrop" ));
-  n0n1.Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx"));
-
-  csma.EnablePcapAll (outputNameRoot);
-
-  //Animation
-  AnimationInterface anim("ecmp_test");
-  anim.SetMaxPktsPerTraceFile(10000000);
-  for (uint32_t i = 1; i < 12; i++)
-        anim.UpdateNodeColor(nodes.Get(i), 0, 128, 0);
-  anim.EnablePacketMetadata(true);
-
-
-  Simulator::Stop (Seconds (1000));
-  Simulator::Run ();
-
-  NS_LOG_UNCOND("counter: " << counter);
-
-  NS_LOG_UNCOND("na " << ipToString(155,155,155,155) << " " << NanoSeconds(50));
-
-  Simulator::Destroy ();
+  return 0;
+//
+//
+//  Names::Add("h_0_0", nodes.Get(12));
+//
+//  Ptr<Node> node = Names::Find<Node>(std::string("h_0_0"));
+//
+//  //Install a csma device and channel in our hosts pairs
+//
+//  NetDeviceContainer n0n1 = csma.Install (NodeContainer(nodes.Get(0),nodes.Get(1)));
+//  NetDeviceContainer n1n2 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(2)));
+//  NetDeviceContainer n1n3 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(3)));
+//  NetDeviceContainer n1n4 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(4)));
+//  NetDeviceContainer n1n5 = csma.Install (NodeContainer(nodes.Get(1),nodes.Get(5)));
+//  NetDeviceContainer n2n6 = csma.Install (NodeContainer(nodes.Get(2),nodes.Get(6)));
+//  NetDeviceContainer n3n6 = csma.Install (NodeContainer(nodes.Get(3),nodes.Get(6)));
+//  NetDeviceContainer n4n6 = csma.Install (NodeContainer(nodes.Get(4),nodes.Get(6)));
+//  NetDeviceContainer n5n6 = csma.Install (NodeContainer(nodes.Get(5),nodes.Get(6)));
+//
+//  NetDeviceContainer n6n7 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(7)));
+//  NetDeviceContainer n6n8 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(8)));
+//  NetDeviceContainer n6n9 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(9)));
+//  NetDeviceContainer n6n10 = csma.Install (NodeContainer(nodes.Get(6),nodes.Get(10)));
+//  NetDeviceContainer n7n11 = csma.Install (NodeContainer(nodes.Get(7),nodes.Get(11)));
+//  NetDeviceContainer n8n11 = csma.Install (NodeContainer(nodes.Get(8),nodes.Get(11)));
+//  NetDeviceContainer n9n11 = csma.Install (NodeContainer(nodes.Get(9),nodes.Get(11)));
+//  NetDeviceContainer n10n11 = csma.Install (NodeContainer(nodes.Get(10),nodes.Get(11)));
+//
+//
+//  NetDeviceContainer n11n12 = csma.Install (NodeContainer(nodes.Get(11),nodes.Get(12)));
+//
+//  NetDeviceContainer net_containers[] = {n0n1, n1n2, n1n3, n1n4, n1n5, n2n6, n3n6, n4n6, n5n6,
+//  		n6n7, n6n8, n6n9, n6n10, n7n11, n8n11, n9n11, n10n11, n11n12};
+//
+//
+//
+//  // Install Internet stack and assing ips
+//  InternetStackHelper stack;
+//  stack.Install (nodes);
+//
+//  int array_length = sizeof(net_containers)/sizeof(net_containers[0]);
+//  NS_LOG_UNCOND(array_length);
+//
+//  Ipv4AddressHelper address("10.0.1.0", "255.255.255.0");
+//  for (int i=0; i < array_length; i++){
+//  	address.Assign(net_containers[i]);
+//  	address.NewNetwork();
+//  }
+//
+//  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+//
+//  Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("node1_tables", std::ios::out);
+//  Ipv4GlobalRoutingHelper::PrintRoutingTableAt(Seconds(1), nodes.Get(1), routingStream);
+//
+//
+//  //Prepare sink app
+//  Ptr<Socket> ns3Socket;
+//  //had to put an initial value
+//  PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPort));
+//  ApplicationContainer sinkApps;
+//
+//  if (protocol == "TCP")
+//  {
+//    ns3Socket = Socket::CreateSocket (nodes.Get (0), TcpSocketFactory::GetTypeId ());
+//    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (12));
+//  }
+//  else
+//	{
+//  	packetSinkHelper.SetAttribute("Protocol",StringValue("ns3::UdpSocketFactory"));
+//    ns3Socket = Socket::CreateSocket (nodes.Get (0), UdpSocketFactory::GetTypeId ());
+//    ApplicationContainer sinkApps = packetSinkHelper.Install (nodes.Get (12));
+//	}
+//
+//  sinkApps.Start (Seconds (0.));
+//  sinkApps.Stop (Seconds (1000.));
+//
+//  //Prepare sender
+////  std::string name = "h_0_0";
+////  Ptr<Node> h0 = Names::Find(std::string("h_0_0"));
+//
+//  Ipv4Address addr = GetNodeIp(node);
+//
+//  Address sinkAddress (InetSocketAddress (addr, sinkPort));
+//
+//  Ptr<MyApp> app = CreateObject<MyApp> ();
+//  app->Setup (ns3Socket, sinkAddress, 1440, 100, DataRate ("10Gbps"));
+//  nodes.Get (0)->AddApplication (app);
+//  app->SetStartTime (Seconds (1.));
+//  app->SetStopTime (Seconds (1000.));
+//
+//  AsciiTraceHelper asciiTraceHelper;
+//  Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
+//  if (protocol == "TCP"){
+//  	ns3Socket->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
+//  }
+//
+//  PcapHelper pcapHelper;
+//  Ptr<PcapFileWrapper> file = pcapHelper.CreateFile (outputNameRoot+".pcap", std::ios::out, PcapHelper::DLT_PPP);
+//
+//
+//  n0n1.Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDrop, file));
+//
+//
+//  n0n1.Get (0)->TraceConnectWithoutContext ("PhyTxDrop", MakeBoundCallback (&TxDrop, "PhyTxDrop"));
+//  n0n1.Get (0)->TraceConnectWithoutContext ("MacTxDrop", MakeBoundCallback (&TxDrop, "MacTxDrop" ));
+//  n0n1.Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx"));
+//
+//  csma.EnablePcapAll (outputNameRoot);
+//
+////  //Animation
+////  AnimationInterface anim("ecmp_test");
+////  anim.SetMaxPktsPerTraceFile(10000000);
+////  for (uint32_t i = 1; i < 12; i++)
+////        anim.UpdateNodeColor(nodes.Get(i), 0, 128, 0);
+////  anim.EnablePacketMetadata(true);
+//
+//
+//  Simulator::Stop (Seconds (1000));
+//  Simulator::Run ();
+//
+//  NS_LOG_UNCOND("counter: " << counter);
+//
+//
+//  Simulator::Destroy ();
 
 
   return 0;

@@ -36,7 +36,9 @@
 #include "tcp-header.h"
 #include "ns3/node.h"
 #include "ns3/enum.h"
+#include "ns3/uinteger.h"
 #include "ns3/integer.h"
+
 
 namespace ns3 {
 
@@ -186,7 +188,7 @@ Ipv4GlobalRouting::GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPay
 
   Ptr<Node> node = m_ipv4->GetObject<Node>();
   //node ID for polarization
-  uint32_t node_id = node->GetId();
+  //uint32_t node_id = node->GetId();
 
   hasher.clear();
   std::ostringstream oss;

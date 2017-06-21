@@ -44,6 +44,19 @@ std::string ipToString(uint8_t first,uint8_t second, uint8_t third, uint8_t four
 	return address;
 }
 
+//Returns node if added to the name system , 0 if it does not exist
+Ptr<Node> GetNode(std::string name){
+	return Names::Find<Node>(name);
+}
+
+
+//Allocate nodes of a fat tree topology for animation pruposes
+
+void
+allocateNodesFatTree(NodeContainer nodes, NodeContainer edge, NodeContainer agg, NodeContainer core){
+
+
+}
 
 
 }
