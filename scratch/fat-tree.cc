@@ -238,7 +238,7 @@ main (int argc, char *argv[])
   cmd.AddValue("NumPackets", "Sink port", num_packets);
   cmd.AddValue("PacketSize", "Sink port", packet_size);
 
-
+  cmd.AddValue ("EcmpMode", "EcmpMode: (0 none, 1 random, 2 flow, 3 Round_Robin)", ecmpMode);
 	cmd.AddValue("dataRate", "Bandwidth of link, used in multiple experiments", dataRate);
   cmd.AddValue("QueueSize", "Sink port", queue_size);
   cmd.AddValue("FlowletGap", "Sink port", flowlet_gap);
@@ -266,21 +266,21 @@ main (int argc, char *argv[])
 
   //Define the csma channel
 
-  CsmaHelper csma;
-  csma.SetChannelAttribute("DataRate", DataRateValue (dataRate));
-  csma.SetChannelAttribute("Delay", StringValue ("0.5ms"));
-  csma.SetChannelAttribute("FullDuplex", BooleanValue("True"));
-  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
-  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(100));
+//  CsmaHelper csma;
+//  csma.SetChannelAttribute("DataRate", DataRateValue (dataRate));
+//  csma.SetChannelAttribute("Delay", StringValue ("0.5ms"));
+//  csma.SetChannelAttribute("FullDuplex", BooleanValue("True"));
+//  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
+//  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(100));
 
   //Define point to point
-//  PointToPointHelper csma;
+  PointToPointHelper csma;
 
-  // create point-to-point link from A to R
-//  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (dataRate)));
-//  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(0.5)));
-//  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
-//  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(1));
+//   create point-to-point link from A to R
+  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (dataRate)));
+  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(0.5)));
+  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
+  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(1));
 
 
   //Compute Fat Tree Devices
@@ -520,12 +520,32 @@ main (int argc, char *argv[])
 //
 //  csma.EnablePcapAll (outputNameRoot);
 
-//  //Animation
-//  AnimationInterface anim("ecmp_test");
-//  anim.SetMaxPktsPerTraceFile(10000000);
-//  for (uint32_t i = 1; i < 12; i++)
-//        anim.UpdateNodeColor(nodes.Get(i), 0, 128, 0);
-//  anim.EnablePacketMetadata(true);
+
+//Allocate nodes in a fat tree shape
+
+  allocateNodesFatTree(k);
+
+  //Animation
+  AnimationInterface anim("fat_tree");
+  anim.SetMaxPktsPerTraceFile(10000000);
+
+//  setting colors
+  for (uint32_t i = 0; i < hosts.GetN(); i++){
+  			Ptr<Node> host = hosts.Get(i);
+        anim.UpdateNodeColor(host, 0, 0, 255);
+  			anim.UpdateNodeSize(host->GetId(), 0.5, 0.5);
+
+  }
+  for (uint32_t i = 0; i < edgeRouters.GetN(); i++)
+  {
+        anim.UpdateNodeColor(edgeRouters.Get(i), 0, 200, 0);
+  			anim.UpdateNodeColor(aggRouters.Get(i), 0, 200, 0);
+  }
+
+  for (uint32_t i = 0; i < coreRouters.GetN(); i++)
+        anim.UpdateNodeColor(coreRouters.Get(i), 255, 0, 0);
+
+  anim.EnablePacketMetadata(true);
 
 
   Simulator::Stop (Seconds (1000));

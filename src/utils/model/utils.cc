@@ -2,6 +2,8 @@
 
 #include "utils.h"
 
+NS_LOG_COMPONENT_DEFINE ("Utils");
+
 namespace ns3 {
 
 /* ... */
@@ -82,7 +84,7 @@ Ptr<Node> GetNode(std::string name){
 }
 
 void
-allocateNodesFatTree(int k, NodeContainer hosts, NodeContainer edgeRouters, NodeContainer aggRouters, NodeContainer coreRouters){
+allocateNodesFatTree(int k){
 
 
 //  Ptr<ConstantPositionMobilityModel> loc = CreateObject<ConstantPositionMobilityModel>();
@@ -90,9 +92,9 @@ allocateNodesFatTree(int k, NodeContainer hosts, NodeContainer edgeRouters, Node
 //	loc->SetPosition(Vector(2,5,0));
 
 	//Locate edge and agg
-	Vector edge_pos(3,4,0);
-	Vector agg_pos (3,6.5,0);
-	Vector host_pos(0,0,0);
+	Vector host_pos(0,30,0);
+	Vector edge_pos(0,25,0);
+	Vector agg_pos (0,19.5,0);
 
 	for (int pod= 0; pod < k ; pod++){
 
@@ -105,40 +107,73 @@ allocateNodesFatTree(int k, NodeContainer hosts, NodeContainer edgeRouters, Node
   		router_name << "r_" << pod << "_e" << pod_router;
 
   		//Update edge pos
-  		edge_pos.x = (edge_pos.x + (5*pod) + (2.5*pod_router));
+  		edge_pos.x = (edge_pos.x + 3);
 
   		GetNode(router_name.str())->AggregateObject(loc);
   		loc->SetPosition(edge_pos);
+  		NS_LOG_UNCOND("Pos: " << router_name.str() << " " << edge_pos);
 
-  		//Allocate hosts
-  		for (int host_i; host_i < k/2 ; host_i++){
-  			Ptr<ConstantPositionMobilityModel> loc = CreateObject<ConstantPositionMobilityModel>();
+
+//  		Allocate hosts
+  		for (int host_i= 0; host_i < k/2 ; host_i++){
+  			Ptr<ConstantPositionMobilityModel> loc1 = CreateObject<ConstantPositionMobilityModel>();
 
     		std::stringstream host_name;
-    		router_name << "h_" << pod << "_" << (host_i + (k/2*pod_router));
+    		host_name << "h_" << pod << "_" << (host_i + (k/2*pod_router));
 
-    		host_pos.x = edge_pos.x;
-    		host_pos.y = edge_pos.y - 2.5;
+    		double hosts_distance = 1.6;
+    		host_pos.x = edge_pos.x -(hosts_distance/2) + (host_i * (hosts_distance/((k/2)-1)));
+
+    		GetNode(host_name.str())->AggregateObject(loc1);
+    		loc1->SetPosition(host_pos);
+    		NS_LOG_UNCOND("Pos: " << host_name.str() << " " << host_pos);
 
   		}
 
-
 			//Allocate aggregations
-			Ptr<ConstantPositionMobilityModel> loc = CreateObject<ConstantPositionMobilityModel>();
+			Ptr<ConstantPositionMobilityModel> loc2 = CreateObject<ConstantPositionMobilityModel>();
 
-  		std::stringstream router_name;
+  		router_name.str("");
   		router_name << "r_" << pod << "_a" << pod_router;
 
   		//Update edge pos
-  		agg_pos.x = (agg_pos.x + (5*pod) + (2.5*pod_router));
+  		agg_pos.x = (agg_pos.x + 3);
 
-  		GetNode(router_name.str())->AggregateObject(loc);
-  		loc->SetPosition(edge_pos);
+  		GetNode(router_name.str())->AggregateObject(loc2);
+  		loc2->SetPosition(agg_pos);
+  		NS_LOG_UNCOND("Pos: " << router_name.str() << " " << agg_pos);
 
 		}
+		edge_pos.x = edge_pos.x + 3;
+		agg_pos.x = agg_pos.x + 3;
 
 	}
 
+	//Allocate Core routers
+	int num_cores = (k/2) * (k/2);
+	int offset = 6;
+	double distance = (edge_pos.x -offset*2);
+	double step = distance/(num_cores-1);
+	Vector core_pos_i(offset,10,0);
+	Vector core_pos(offset,10,0);
+
+
+	for (int router_i = 0; router_i < num_cores; router_i++){
+
+		Ptr<ConstantPositionMobilityModel> loc3 = CreateObject<ConstantPositionMobilityModel>();
+
+		std::stringstream router_name;
+		router_name << "r_c" << router_i;
+
+		//Update edge pos
+		core_pos.x =core_pos_i.x + (router_i * step);
+
+		GetNode(router_name.str())->AggregateObject(loc3);
+		loc3->SetPosition(core_pos);
+		NS_LOG_UNCOND("Pos: " << router_name.str() << " " << core_pos);
+
+
+	}
 
 }
 
