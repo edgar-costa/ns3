@@ -2,7 +2,7 @@
 
 #include "utils.h"
 
-NS_LOG_COMPONENT_DEFINE ("Utils");
+NS_LOG_COMPONENT_DEFINE ("utils");
 
 namespace ns3 {
 
@@ -111,7 +111,7 @@ allocateNodesFatTree(int k){
 
   		GetNode(router_name.str())->AggregateObject(loc);
   		loc->SetPosition(edge_pos);
-  		NS_LOG_UNCOND("Pos: " << router_name.str() << " " << edge_pos);
+  		NS_LOG_DEBUG("Pos: " << router_name.str() << " " << edge_pos);
 
 
 //  		Allocate hosts
@@ -126,7 +126,7 @@ allocateNodesFatTree(int k){
 
     		GetNode(host_name.str())->AggregateObject(loc1);
     		loc1->SetPosition(host_pos);
-    		NS_LOG_UNCOND("Pos: " << host_name.str() << " " << host_pos);
+    		NS_LOG_DEBUG("Pos: " << host_name.str() << " " << host_pos);
 
   		}
 
@@ -141,7 +141,7 @@ allocateNodesFatTree(int k){
 
   		GetNode(router_name.str())->AggregateObject(loc2);
   		loc2->SetPosition(agg_pos);
-  		NS_LOG_UNCOND("Pos: " << router_name.str() << " " << agg_pos);
+  		NS_LOG_DEBUG("Pos: " << router_name.str() << " " << agg_pos);
 
 		}
 		edge_pos.x = edge_pos.x + 3;
@@ -170,7 +170,7 @@ allocateNodesFatTree(int k){
 
 		GetNode(router_name.str())->AggregateObject(loc3);
 		loc3->SetPosition(core_pos);
-		NS_LOG_UNCOND("Pos: " << router_name.str() << " " << core_pos);
+		NS_LOG_DEBUG("Pos: " << router_name.str() << " " << core_pos);
 
 
 	}

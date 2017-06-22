@@ -22,6 +22,8 @@ seventh-packet-byte-count.png
 ~*
 *~
 
+.cproject
+
 testpy-output
 
 bindings/python/pybindgen/

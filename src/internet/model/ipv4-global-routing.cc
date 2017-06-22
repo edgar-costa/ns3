@@ -203,12 +203,12 @@ Ipv4GlobalRouting::GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPay
     {
       UdpHeader udpHeader;
       ipPayload->PeekHeader(udpHeader);
-      NS_LOG_DEBUG ("FiveTuple() -> UDP: (src, dst, protNb, sPort, dPort) - "
-          << header.GetSource() << " , "
-          << header.GetDestination() << " , "
-          << (int)header.GetProtocol() << " , "
-          << (int)udpHeader.GetSourcePort () << " , "
-          << (int)udpHeader.GetDestinationPort ());
+//      NS_LOG_DEBUG ("FiveTuple() -> UDP: (src, dst, protNb, sPort, dPort) - "
+//          << header.GetSource() << " , "
+//          << header.GetDestination() << " , "
+//          << (int)header.GetProtocol() << " , "
+//          << (int)udpHeader.GetSourcePort () << " , "
+//          << (int)udpHeader.GetDestinationPort ());
 
       oss << udpHeader.GetSourcePort()
           << udpHeader.GetDestinationPort();
@@ -219,12 +219,12 @@ Ipv4GlobalRouting::GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPay
     {
       TcpHeader tcpHeader;
       ipPayload->PeekHeader(tcpHeader);
-      NS_LOG_DEBUG ("FiveTuple() -> TCP: (src, dst, protNb, sPort, dPort) -  "
-          << header.GetSource() << " , "
-          << header.GetDestination() << " , "
-          << (int)header.GetProtocol() << " , "
-          << (int)tcpHeader.GetSourcePort () << " , "
-          << (int)tcpHeader.GetDestinationPort ());
+//      NS_LOG_DEBUG ("FiveTuple() -> TCP: (src, dst, protNb, sPort, dPort) -  "
+//          << header.GetSource() << " , "
+//          << header.GetDestination() << " , "
+//          << (int)header.GetProtocol() << " , "
+//          << (int)tcpHeader.GetSourcePort () << " , "
+//          << (int)tcpHeader.GetDestinationPort ());
 
       oss << tcpHeader.GetSourcePort()
           << tcpHeader.GetDestinationPort();
@@ -500,11 +500,15 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 
 							//check if the packet gap is bigger than threshold. In that case select a new random port.
 							int64_t now  = Simulator::Now().GetTimeStep();
+							NS_LOG_DEBUG("At " << Simulator::Now().GetSeconds() << " Inter packe gap is :" << (NanoSeconds(now-flowlet_data.time)).GetMilliSeconds());
+
 							if ((now - flowlet_data.time) > m_flowletGap){
 								//Generate a new random port and update flowlet table
 								selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
 								flowlet_data.time = now; flowlet_data.out_port = selectIndex;
 								flowlet_table[key] = flowlet_data;
+
+								NS_LOG_DEBUG("Flowlet expired in node: " <<  Names::FindName(m_ipv4->GetObject<Node>()));
 
 							}
 							else{
@@ -525,6 +529,7 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 							selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
 							flowlet_data.time = now; flowlet_data.out_port = selectIndex;
 							flowlet_table[key] = flowlet_data;
+
 						}
 
 						break;

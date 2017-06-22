@@ -164,13 +164,13 @@ MyApp::ScheduleTx (void)
 	Time tNext;
   if (m_running)
     {
-  		if (counter < 20000){
+  		if (counter < 20){
   			tNext  = Seconds (m_packetSize * 8 / static_cast<double> (m_dataRate.GetBitRate ()));
   			counter++;
   		}
   		else{
-  			//NS_LOG_UNCOND("hola");
-  			tNext =(Seconds(0.0001));
+  			NS_LOG_UNCOND("hola");
+  			tNext = MilliSeconds(100);
   			counter = 0;
     }
   	m_sendEvent = Simulator::Schedule (tNext, &MyApp::SendPacket, this);
@@ -213,9 +213,11 @@ main (int argc, char *argv[])
 	RngSeedManager::SetRun (1);   // Changes run number from default of 1 to 7
 
   //Enable logging
-	//LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
+	LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
 	//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
-  LogComponentEnable("fat-tree", LOG_ALL);
+     LogComponentEnable("fat-tree", LOG_ERROR);
+     LogComponentEnable("utils", LOG_ERROR);
+
 
 
   //Command line arguments
@@ -315,7 +317,7 @@ main (int argc, char *argv[])
 
   		std::stringstream host_name;
   		host_name << "h_" << pod << "_" << inpod_num;
-  	  NS_LOG_UNCOND(host_name.str());
+  		NS_LOG_DEBUG(host_name.str());
 
   		Names::Add(host_name.str(), (*host));
 
@@ -336,7 +338,7 @@ main (int argc, char *argv[])
 
   		std::stringstream router_name;
   		router_name << "r_" << pod << "_e" << inpod_num;
-  	  NS_LOG_UNCOND(router_name.str());
+  	  NS_LOG_DEBUG(router_name.str());
 
   		Names::Add(router_name.str(), (*router));
 
@@ -356,7 +358,7 @@ main (int argc, char *argv[])
 
   		std::stringstream router_name;
   		router_name << "r_" << pod << "_a" << inpod_num;
-  	  NS_LOG_UNCOND(router_name.str());
+  	  NS_LOG_DEBUG(router_name.str());
 
   		Names::Add(router_name.str(), (*router));
 
@@ -374,7 +376,7 @@ main (int argc, char *argv[])
 
   		std::stringstream router_name;
   		router_name << "r_c"  <<router_count;
-  	  NS_LOG_UNCOND(router_name.str());
+  	  NS_LOG_DEBUG(router_name.str());
 
   		Names::Add(router_name.str(), (*router));
 
@@ -494,7 +496,7 @@ main (int argc, char *argv[])
   Address sinkAddress (InetSocketAddress (addr, sinkPort));
 
   Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3Socket, sinkAddress, 1440, 100, DataRate ("10Mbps"));
+  app->Setup (ns3Socket, sinkAddress, 1440, num_packets, DataRate ("10Mbps"));
   GetNode("h_0_0")->AddApplication (app);
   app->SetStartTime (Seconds (1.));
   app->SetStopTime (Seconds (1000.));
@@ -551,7 +553,7 @@ main (int argc, char *argv[])
   Simulator::Stop (Seconds (1000));
   Simulator::Run ();
 
-  NS_LOG_UNCOND("counter: " << counter);
+  NS_LOG_DEBUG("counter: " << counter);
 
 
   Simulator::Destroy ();
