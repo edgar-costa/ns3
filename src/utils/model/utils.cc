@@ -83,6 +83,10 @@ Ptr<Node> GetNode(std::string name){
 	return Names::Find<Node>(name);
 }
 
+std::string GetNodeName(Ptr<Node> node){
+	return Names::FindName(node);
+}
+
 void
 allocateNodesFatTree(int k){
 

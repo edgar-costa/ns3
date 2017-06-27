@@ -20,6 +20,8 @@ Ipv4Address GetNodeIp(Ptr<Node> node);
 std::string ipToString(uint8_t first,uint8_t second, uint8_t third, uint8_t fourth);
 Ptr<Node> GetNode(std::string name);
 void allocateNodesFatTree(int k);
+std::string GetNodeName(Ptr<Node> node);
+
 }
 
 #endif /* UTILS_H */

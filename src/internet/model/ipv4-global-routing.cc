@@ -500,15 +500,17 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 
 							//check if the packet gap is bigger than threshold. In that case select a new random port.
 							int64_t now  = Simulator::Now().GetTimeStep();
-							NS_LOG_DEBUG("At " << Simulator::Now().GetSeconds() << " Inter packe gap is :" << (NanoSeconds(now-flowlet_data.time)).GetMilliSeconds());
 
 							if ((now - flowlet_data.time) > m_flowletGap){
+								NS_LOG_DEBUG("Flowlet expired in node: " <<  Names::FindName(m_ipv4->GetObject<Node>()));
+								NS_LOG_DEBUG("At " << Simulator::Now().GetSeconds() << " Inter packe gap is :" << (NanoSeconds(now-flowlet_data.time)).GetMilliSeconds());
+
 								//Generate a new random port and update flowlet table
 								selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
 								flowlet_data.time = now; flowlet_data.out_port = selectIndex;
 								flowlet_table[key] = flowlet_data;
 
-								NS_LOG_DEBUG("Flowlet expired in node: " <<  Names::FindName(m_ipv4->GetObject<Node>()));
+
 
 							}
 							else{

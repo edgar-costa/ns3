@@ -17,6 +17,7 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+#include <unordered_map>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -25,6 +26,8 @@
 #include "ns3/csma-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/netanim-module.h"
+#include "ns3/traffic-control-module.h"
+#include "ns3/traffic-generation.h"
 #include "ns3/utils.h"
 
 
@@ -42,140 +45,7 @@ int counter = 0;
 
 
 
-///// My appp
 
-class MyApp : public Application
-{
-public:
-  MyApp ();
-  virtual ~MyApp ();
-
-  /**
-   * Register this type.
-   * \return The TypeId.
-   */
-  static TypeId GetTypeId (void);
-  void Setup (Ptr<Socket> socket, Address address, uint32_t packetSize, uint32_t nPackets, DataRate dataRate);
-
-private:
-  virtual void StartApplication (void);
-  virtual void StopApplication (void);
-
-  void ScheduleTx (void);
-  void SendPacket (void);
-
-  Ptr<Socket>     m_socket;
-  Address         m_peer;
-  uint32_t        m_packetSize;
-  uint32_t        m_nPackets;
-  DataRate        m_dataRate;
-  EventId         m_sendEvent;
-  bool            m_running;
-  uint32_t        m_packetsSent;
-  Socket::SocketType            m_socket_type;
-
-};
-
-MyApp::MyApp ()
-  : m_socket (0),
-    m_peer (),
-    m_packetSize (0),
-    m_nPackets (0),
-    m_dataRate (0),
-    m_sendEvent (),
-    m_running (false),
-    m_packetsSent (0),
-		m_socket_type (Socket::NS3_SOCK_STREAM)
-{
-}
-
-MyApp::~MyApp ()
-{
-  m_socket = 0;
-}
-
-/* static */
-TypeId MyApp::GetTypeId (void)
-{
-  static TypeId tid = TypeId ("MyApp")
-    .SetParent<Application> ()
-    .SetGroupName ("Tutorial")
-    .AddConstructor<MyApp> ()
-    ;
-  return tid;
-}
-
-void
-MyApp::Setup (Ptr<Socket> socket, Address address, uint32_t packetSize, uint32_t nPackets, DataRate dataRate)
-{
-  m_socket = socket;
-  m_peer = address;
-  m_packetSize = packetSize;
-  m_nPackets = nPackets;
-  m_dataRate = dataRate;
-}
-
-void
-MyApp::StartApplication (void)
-{
-  m_running = true;
-  m_packetsSent = 0;
-  m_socket->Bind ();
-  m_socket->Connect (m_peer);
-  SendPacket ();
-}
-
-void
-MyApp::StopApplication (void)
-{
-  m_running = false;
-
-  if (m_sendEvent.IsRunning ())
-    {
-      Simulator::Cancel (m_sendEvent);
-    }
-
-  if (m_socket)
-    {
-      m_socket->Close ();
-    }
-}
-
-void
-MyApp::SendPacket (void)
-{
-  Ptr<Packet> packet = Create<Packet> (m_packetSize);
-
-  int packets_sent = m_socket->Send (packet);
-
-  if (packets_sent == -1){
-  	NS_LOG_UNCOND("Failed sending Socket at " << Simulator::Now().GetSeconds());
-  }
-
-  if (++m_packetsSent < m_nPackets)
-    {
-      ScheduleTx ();
-    }
-}
-
-void
-MyApp::ScheduleTx (void)
-{
-	Time tNext;
-  if (m_running)
-    {
-  		if (counter < 20){
-  			tNext  = Seconds (m_packetSize * 8 / static_cast<double> (m_dataRate.GetBitRate ()));
-  			counter++;
-  		}
-  		else{
-  			NS_LOG_UNCOND("hola");
-  			tNext = MilliSeconds(100);
-  			counter = 0;
-    }
-  	m_sendEvent = Simulator::Schedule (tNext, &MyApp::SendPacket, this);
-    }
-}
 
 //TRACE SINKS
 
@@ -215,8 +85,8 @@ main (int argc, char *argv[])
   //Enable logging
 	LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
 	//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
-     LogComponentEnable("fat-tree", LOG_ERROR);
-     LogComponentEnable("utils", LOG_ERROR);
+  LogComponentEnable("fat-tree", LOG_ERROR);
+  LogComponentEnable("utils", LOG_ERROR);
 
 
 
@@ -259,10 +129,25 @@ main (int argc, char *argv[])
   Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", IntegerValue(MilliSeconds(flowlet_gap).GetNanoSeconds()));
 
   //TCP
+	uint32_t minRTO = 100;
+	int delay = 10;
+	int rtt = 12*delay;
+
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
   Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
   Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
-  Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
+
+  //still have to understand this one by one
+	Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(rtt)));
+	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MilliSeconds (minRTO)));
+	Config::SetDefault ("ns3::TcpSocketBase::MaxSegLifetime",DoubleValue(0));
+	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1448));
+	Config::SetDefault ("ns3::TcpSocket::DataRetries", UintegerValue (5000));
+	Config::SetDefault ("ns3::TcpSocket::ConnCount",UintegerValue(5000));
+
+	Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(2*rtt)));
+	Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+  //Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
 
   //Define Interfaces
 
@@ -273,7 +158,7 @@ main (int argc, char *argv[])
 //  csma.SetChannelAttribute("Delay", StringValue ("0.5ms"));
 //  csma.SetChannelAttribute("FullDuplex", BooleanValue("True"));
 //  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
-//  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(100));
+//  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(queue_size));
 
   //Define point to point
   PointToPointHelper csma;
@@ -282,7 +167,7 @@ main (int argc, char *argv[])
   csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (dataRate)));
   csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(0.5)));
   csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
-  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(1));
+  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(queue_size));
 
 
   //Compute Fat Tree Devices
@@ -452,17 +337,17 @@ main (int argc, char *argv[])
 
 
   //Assign IPS
+  //Uninstall FIFO queue //  //uninstall qdiscs
+  TrafficControlHelper tch;
 
   Ipv4AddressHelper address("10.0.1.0", "255.255.255.0");
   for (auto it : links){
   	address.Assign(it.second);
   	address.NewNetwork();
+  	tch.Uninstall(it.second);
   }
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-
-
-
 
 //
 //  Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper>("node1_tables", std::ios::out);
@@ -470,44 +355,50 @@ main (int argc, char *argv[])
 //
 //
 //  //Prepare sink app
+  installSink(GetNode("h_1_0"), sinkPort, 1000, protocol);
+
+
   Ptr<Socket> ns3Socket;
   //had to put an initial value
-  PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPort));
-  ApplicationContainer sinkApps;
-
   if (protocol == "TCP")
   {
     ns3Socket = Socket::CreateSocket (GetNode("h_0_0"), TcpSocketFactory::GetTypeId ());
-    ApplicationContainer sinkApps = packetSinkHelper.Install (GetNode("h_1_0"));
   }
   else
 	{
-  	packetSinkHelper.SetAttribute("Protocol",StringValue("ns3::UdpSocketFactory"));
     ns3Socket = Socket::CreateSocket (GetNode("h_0_0"), UdpSocketFactory::GetTypeId ());
-    ApplicationContainer sinkApps = packetSinkHelper.Install (GetNode("h_1_0"));
 	}
-
-  sinkApps.Start (Seconds (0.));
-  sinkApps.Stop (Seconds (1000.));
-
 
   Ipv4Address addr = GetNodeIp("h_1_0");
 
   Address sinkAddress (InetSocketAddress (addr, sinkPort));
 
-  Ptr<MyApp> app = CreateObject<MyApp> ();
+  Ptr<SimpleSend> app = CreateObject<SimpleSend> ();
   app->Setup (ns3Socket, sinkAddress, 1440, num_packets, DataRate ("10Mbps"));
+
+//
+  Ptr<Socket> ns3Socket2;
+  ns3Socket2 = Socket::CreateSocket (GetNode("h_0_1"), TcpSocketFactory::GetTypeId ());
+  Ptr<SimpleSend> app2 = CreateObject<SimpleSend> ();
+
+  app2->Setup (ns3Socket2, sinkAddress, 1440, num_packets, DataRate ("10Mbps"));
+  app2->SetStartTime (Seconds (1.));
+  app2->SetStopTime (Seconds (1000.));
+
+
+  GetNode("h_0_1")->AddApplication(app2);
   GetNode("h_0_0")->AddApplication (app);
+
   app->SetStartTime (Seconds (1.));
   app->SetStopTime (Seconds (1000.));
 
 
 //
-//  AsciiTraceHelper asciiTraceHelper;
-//  Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
-//  if (protocol == "TCP"){
-//  	ns3Socket->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
-//  }
+  AsciiTraceHelper asciiTraceHelper;
+  Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
+  if (protocol == "TCP"){
+  	ns3Socket->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
+  }
 //
 //  PcapHelper pcapHelper;
 //  Ptr<PcapFileWrapper> file = pcapHelper.CreateFile (outputNameRoot+".pcap", std::ios::out, PcapHelper::DLT_PPP);
@@ -518,9 +409,12 @@ main (int argc, char *argv[])
 //
 //  n0n1.Get (0)->TraceConnectWithoutContext ("PhyTxDrop", MakeBoundCallback (&TxDrop, "PhyTxDrop"));
 //  n0n1.Get (0)->TraceConnectWithoutContext ("MacTxDrop", MakeBoundCallback (&TxDrop, "MacTxDrop" ));
-//  n0n1.Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx"));
+  	links["h_0_0->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_0"));
+  	links["h_0_1->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_1"));
+
 //
-//  csma.EnablePcapAll (outputNameRoot);
+  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
 
 
 //Allocate nodes in a fat tree shape
