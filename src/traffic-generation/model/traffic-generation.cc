@@ -117,6 +117,8 @@ SimpleSend::ScheduleTx (void)
     }
 }
 
+//NEW TRAFFIC GENERATION TOOLS
+
 void installSink(Ptr<Node> node, uint16_t sinkPort, uint32_t duration, std::string protocol){
 
   //create sink helper
@@ -128,32 +130,50 @@ void installSink(Ptr<Node> node, uint16_t sinkPort, uint32_t duration, std::stri
 
   ApplicationContainer sinkApps = packetSinkHelper.Install(node);
 
-  sinkApps.Start (Seconds (0.));
+  sinkApps.Start (Seconds (0));
   sinkApps.Stop (Seconds (duration));
 }
 
-std::unordered_map <std::string, std::vector<uint16_t>> installSinks(NodeContainer hosts, uint16_t sinksPerHost, uint32_t duration, std::string protocol){
 
-	std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts;
-  Ptr<UniformRandomVariable> random_generator = CreateObject<UniformRandomVariable> ();
-  uint16_t starting_port;
 
-  for(ObjectVectorValue::Iterator host = hosts.Begin(); host != hosts.End (); host ++){
+//
+//std::unordered_map <std::string, std::vector<uint16_t>> installSinks(NodeContainer hosts, uint16_t sinksPerHost, uint32_t duration, std::string protocol){
+//
+//	std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts;
+//  Ptr<UniformRandomVariable> random_generator = CreateObject<UniformRandomVariable> ();
+//  uint16_t starting_port;
+//
+//  for(ObjectVectorValue::Iterator host = hosts.Begin(); host != hosts.End (); host ++){
+//
+//  	starting_port = random_generator->GetInteger(0, (uint16_t)-1 - sinksPerHost);
+//  	std::string host_name = GetNodeName((*host).second);
+//
+//  	hostsToPorts[host_name] = std::vector();
+//
+//  	for (int i = 0; i < sinksPerHost ; i++){
+//  		installSink((*host).second, starting_port+i, duration, protocol);
+//  		//Add port into the vector
+//    	hostsToPorts[host_name].push_back(starting_port+i);
+//  	}
+//
+//  }
+//
+//  return hostsToPorts;
+//}
+//
+//
+//
+//void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts, DataRate sendingRate){
+//
+//	uint16_t vector_size = hostsToPorts.begin()->second.size();
+//
+//
+//	for (auto host = hosts.Begin(); host != hosts.End(); host++){
+//		return;
+//	}
 
-  	starting_port = random_generator->GetInteger(0, (uint16_t)-1 - sinksPerHost);
-  	std::string host_name = GetNodeName((*host).second);
+//}
 
-  	hostsToPorts[host_name] = std::vector();
-
-  	for (int i = 0; i < sinksPerHost ; i++){
-  		installSink((*host).second, starting_port+i, duration, protocol);
-  		//Add port into the vector
-    	hostsToPorts[host_name].push_back(starting_port+i);
-  	}
-
-  }
-
-}
 
 
 }

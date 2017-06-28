@@ -4,9 +4,13 @@
 
 NS_LOG_COMPONENT_DEFINE ("utils");
 
+
+
 namespace ns3 {
 
 /* ... */
+
+Ptr<UniformRandomVariable> random_variable = CreateObject<UniformRandomVariable> ();
 
 
 Ipv4Address

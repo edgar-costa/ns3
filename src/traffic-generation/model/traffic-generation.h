@@ -48,6 +48,8 @@ private:
 };
 
 void installSink(Ptr<Node> node, uint16_t sinkPort, uint32_t duration, std::string protocol);
+std::unordered_map <std::string, std::vector<uint16_t>> installSinks(NodeContainer hosts, uint16_t sinksPerHost, uint32_t duration, std::string protocol);
+void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts, DataRate sendingRate);
 
 }
 
