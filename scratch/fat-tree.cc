@@ -422,7 +422,7 @@ main (int argc, char *argv[])
   allocateNodesFatTree(k);
 
   //Animation
-  AnimationInterface anim("fat_tree");
+  AnimationInterface anim("fat_tree.anim");
   anim.SetMaxPktsPerTraceFile(10000000);
 
 //  setting colors
