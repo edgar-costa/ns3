@@ -357,47 +357,15 @@ main (int argc, char *argv[])
 //  //Prepare sink app
   installSink(GetNode("h_1_0"), sinkPort, 1000, protocol);
 
-
-  Ptr<Socket> ns3Socket;
-  //had to put an initial value
-  if (protocol == "TCP")
-  {
-    ns3Socket = Socket::CreateSocket (GetNode("h_0_0"), TcpSocketFactory::GetTypeId ());
-  }
-  else
-	{
-    ns3Socket = Socket::CreateSocket (GetNode("h_0_0"), UdpSocketFactory::GetTypeId ());
-	}
-
-  Ipv4Address addr = GetNodeIp("h_1_0");
-
-  Address sinkAddress (InetSocketAddress (addr, sinkPort));
-
-  Ptr<SimpleSend> app = CreateObject<SimpleSend> ();
-  app->Setup (ns3Socket, sinkAddress, 1440, num_packets, DataRate ("10Mbps"));
-
-//
-  Ptr<Socket> ns3Socket2;
-  ns3Socket2 = Socket::CreateSocket (GetNode("h_0_1"), TcpSocketFactory::GetTypeId ());
-  Ptr<SimpleSend> app2 = CreateObject<SimpleSend> ();
-
-  app2->Setup (ns3Socket2, sinkAddress, 1440, num_packets, DataRate ("10Mbps"));
-  app2->SetStartTime (Seconds (1.));
-  app2->SetStopTime (Seconds (1000.));
-
-
-  GetNode("h_0_1")->AddApplication(app2);
-  GetNode("h_0_0")->AddApplication (app);
-
-  app->SetStartTime (Seconds (1.));
-  app->SetStopTime (Seconds (1000.));
+  Ptr<Socket> sock = installSimpleSend(GetNode("h_0_0"), GetNode("h_1_0"), sinkPort, dataRate, num_packets,protocol);
+  installSimpleSend(GetNode("h_0_1"), GetNode("h_1_0"), sinkPort, dataRate, num_packets,protocol);
 
 
 //
   AsciiTraceHelper asciiTraceHelper;
   Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
   if (protocol == "TCP"){
-  	ns3Socket->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
+  	sock->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
   }
 //
 //  PcapHelper pcapHelper;
@@ -448,7 +416,6 @@ main (int argc, char *argv[])
   Simulator::Run ();
 
   NS_LOG_DEBUG("counter: " << counter);
-
 
   Simulator::Destroy ();
 
