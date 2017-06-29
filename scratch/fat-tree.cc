@@ -28,6 +28,7 @@
 #include "ns3/netanim-module.h"
 #include "ns3/traffic-control-module.h"
 #include "ns3/traffic-generation.h"
+#include "ns3/flow-monitor-module.h"
 #include "ns3/utils.h"
 
 
@@ -83,7 +84,7 @@ main (int argc, char *argv[])
 	RngSeedManager::SetRun (1);   // Changes run number from default of 1 to 7
 
   //Enable logging
-	LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
+	//LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
 	//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
   LogComponentEnable("fat-tree", LOG_ERROR);
   LogComponentEnable("utils", LOG_ERROR);
@@ -93,18 +94,31 @@ main (int argc, char *argv[])
   //Command line arguments
   std::string ecmpMode = "ECMP_NONE";
   std::string protocol = "TCP";
+  std::string experimentName = "default";
   uint16_t sinkPort = 8582;
   uint32_t num_packets = 100;
   uint16_t packet_size = 1400;
   uint16_t queue_size = 20;
   int64_t flowlet_gap = 50;
 
+  bool animation = false;
+  bool monitor = false;
+  bool debug = false;
 
   //Fat tree parameters
   int k =  4;
   DataRate dataRate("10Mbps");
 
   CommandLine cmd;
+  cmd.AddValue("Animation", "Enable animation module" , animation);
+  cmd.AddValue("Monitor", "" , monitor);
+  cmd.AddValue("Debug", "" , debug);
+
+
+
+  cmd.AddValue("ExperimentName", "Name of the experiment: " , experimentName);
+
+
   cmd.AddValue("Protocol", "Protocol used by the traffic Default is: "+protocol , protocol);
   cmd.AddValue("SinkPort", "Sink port", sinkPort);
   cmd.AddValue("NumPackets", "Sink port", num_packets);
@@ -114,12 +128,12 @@ main (int argc, char *argv[])
 	cmd.AddValue("dataRate", "Bandwidth of link, used in multiple experiments", dataRate);
   cmd.AddValue("QueueSize", "Sink port", queue_size);
   cmd.AddValue("FlowletGap", "Sink port", flowlet_gap);
-
-
   cmd.AddValue("K", "Fat tree size", k);
 
-
   cmd.Parse (argc, argv);
+
+  //Update root name
+  outputNameRoot = outputNameRoot + "-" + experimentName;
 
   //General default configurations
 
@@ -354,19 +368,31 @@ main (int argc, char *argv[])
 //  Ipv4GlobalRoutingHelper::PrintRoutingTableAt(Seconds(1), nodes.Get(1), routingStream);
 //
 //
+
+//START TRAFFIC
+
+
 //  //Prepare sink app
-  installSink(GetNode("h_1_0"), sinkPort, 1000, protocol);
+  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 5, 1000 , protocol);
 
-  Ptr<Socket> sock = installSimpleSend(GetNode("h_0_0"), GetNode("h_1_0"), sinkPort, dataRate, num_packets,protocol);
-  installSimpleSend(GetNode("h_0_1"), GetNode("h_1_0"), sinkPort, dataRate, num_packets,protocol);
+  startStride(hosts, hostToPort, dataRate, 1, k);
+
+  //installSink(GetNode("h_1_0"), sinkPort, 1000, protocol);
+
+//  Ptr<Socket> sock = installSimpleSend(GetNode("h_0_0"), GetNode("h_1_0"), randomFromVector(hostToPort["h_1_0"]), dataRate, num_packets,protocol);
+//  Ptr<Socket> sock2 = installSimpleSend(GetNode("h_0_1"), GetNode("h_1_0"), randomFromVector(hostToPort["h_1_0"]), dataRate, num_packets,protocol);
+//  installSimpleSend(GetNode("h_3_1"), GetNode("h_2_0"), randomFromVector(hostToPort["h_2_0"]), dataRate, num_packets,protocol);
 
 
-//
+
   AsciiTraceHelper asciiTraceHelper;
-  Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
-  if (protocol == "TCP"){
-  	sock->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
-  }
+//   Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
+//   Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream (outputNameRoot+"2.cwnd");
+//  if (protocol == "TCP"){
+//  	sock->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
+//  	sock2->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream2));
+//  }
+
 //
 //  PcapHelper pcapHelper;
 //  Ptr<PcapFileWrapper> file = pcapHelper.CreateFile (outputNameRoot+".pcap", std::ios::out, PcapHelper::DLT_PPP);
@@ -377,12 +403,12 @@ main (int argc, char *argv[])
 //
 //  n0n1.Get (0)->TraceConnectWithoutContext ("PhyTxDrop", MakeBoundCallback (&TxDrop, "PhyTxDrop"));
 //  n0n1.Get (0)->TraceConnectWithoutContext ("MacTxDrop", MakeBoundCallback (&TxDrop, "MacTxDrop" ));
-  	links["h_0_0->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_0"));
-  	links["h_0_1->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_1"));
+  //links["h_0_0->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_0"));
+  //links["h_0_1->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_1"));
 
 //
-  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
-  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
+  //csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
+  //csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
 
 
 //Allocate nodes in a fat tree shape
@@ -390,7 +416,7 @@ main (int argc, char *argv[])
   allocateNodesFatTree(k);
 
   //Animation
-  AnimationInterface anim("fat_tree.anim");
+  AnimationInterface anim(outputNameRoot+".anim");
   anim.SetMaxPktsPerTraceFile(10000000);
 
 //  setting colors
@@ -412,11 +438,46 @@ main (int argc, char *argv[])
   anim.EnablePacketMetadata(true);
 
 
+  ////////////////////
+  //Flow Monitor
+  ////////////////////
+  FlowMonitorHelper flowHelper;
+  Ptr<FlowMonitor>  flowMonitor;
+  Ptr<Ipv4FlowClassifier> classifier;
+  std::map<FlowId, FlowMonitor::FlowStats> stats;
+
+  if (monitor)
+  {
+  	flowMonitor = flowHelper.InstallAll ();
+  }
+
   Simulator::Stop (Seconds (1000));
   Simulator::Run ();
 
-  NS_LOG_DEBUG("counter: " << counter);
+  if (monitor){
+		classifier = DynamicCast<Ipv4FlowClassifier> (flowHelper.GetClassifier ());
+		stats = flowMonitor->GetFlowStats ();
 
+		//File where we write FCT
+		Ptr<OutputStreamWrapper> fct = asciiTraceHelper.CreateFileStream (outputNameRoot+".fct");
+
+		for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i){
+
+			Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
+
+			double duration = (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds());
+
+			std::cout << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+			std::cout << "Tx Bytes:   " << i->second.txBytes << "\n";
+			std::cout << "Rx Bytes:   " << i->second.rxBytes << "\n";
+			std::cout << "Flow duration:   " << duration << "\n";
+			*fct->GetStream() << duration << "\n";
+			std::cout << "Throughput: " << i->second.rxBytes * 8.0 / duration /1024/1024  << " Mbps\n";
+    }
+
+//  flowHelper.SerializeToXmlFile (std::string("outputs/") + "flowmonitor", true, true);
+
+  }
   Simulator::Destroy ();
 
 

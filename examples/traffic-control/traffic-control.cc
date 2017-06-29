@@ -18,7 +18,6 @@
  * Author: Pasquale Imputato <p.imputato@gmail.com>
  * Author: Stefano Avallone <stefano.avallone@unina.it>
  */
-
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"

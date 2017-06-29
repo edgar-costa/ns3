@@ -160,6 +160,7 @@ Ptr<Socket> installSimpleSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t sin
   srcHost->AddApplication (app);
 
   app->SetStartTime (Seconds (1.));
+  //Stop not needed since the simulator stops when there are no more packets to send.
   //app->SetStopTime (Seconds (1000.));
   return ns3Socket;
 }
@@ -194,12 +195,27 @@ std::unordered_map <std::string, std::vector<uint16_t>> installSinks(NodeContain
 }
 
 
-void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts, DataRate sendingRate){
+void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts, DataRate sendingRate, uint16_t nFlows, uint16_t offset){
 
 //	uint16_t vector_size = hostsToPorts.begin()->second.size();
+	uint16_t numHosts =  hosts.GetN();
 
+	uint16_t index = 0;
 	for (NodeContainer::Iterator host = hosts.Begin(); host != hosts.End(); host++){
 
+		//Get receiver
+		Ptr<Node> dst = hosts.Get((index + offset) % numHosts);
+		std::vector<uint16_t> availablePorts = hostsToPorts[GetNodeName(dst)];
+
+		for (int flow_i =0; flow_i < nFlows; flow_i++){
+
+			//get random available port
+			uint16_t dport = randomFromVector<uint16_t>(availablePorts);
+
+			//create sender
+			installSimpleSend((*host), dst,	dport, sendingRate, 8830, "TCP");
+		}
+		index++;
 	}
 
 }
