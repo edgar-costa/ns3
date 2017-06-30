@@ -361,6 +361,17 @@ main (int argc, char *argv[])
   	tch.Uninstall(it.second);
   }
 
+  //Create a ip to node mapping
+  std::unordered_map<std::string, Ptr<Node>> ipToNode;
+
+  for (uint32_t host_i = 0; host_i < hosts.GetN(); host_i++){
+  	Ptr<Node> host = hosts.Get(host_i);
+  	ipToNode[ipv4AddressToString(GetNodeIp(host))] = host;
+  }
+
+
+
+
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
 //
@@ -377,15 +388,17 @@ main (int argc, char *argv[])
 
   startStride(hosts, hostToPort, dataRate, 1, k);
 
-  //installSink(GetNode("h_1_0"), sinkPort, 1000, protocol);
 
+
+  //////////////////
+  //TRACES
+  ///////////////////
 //  Ptr<Socket> sock = installSimpleSend(GetNode("h_0_0"), GetNode("h_1_0"), randomFromVector(hostToPort["h_1_0"]), dataRate, num_packets,protocol);
 //  Ptr<Socket> sock2 = installSimpleSend(GetNode("h_0_1"), GetNode("h_1_0"), randomFromVector(hostToPort["h_1_0"]), dataRate, num_packets,protocol);
 //  installSimpleSend(GetNode("h_3_1"), GetNode("h_2_0"), randomFromVector(hostToPort["h_2_0"]), dataRate, num_packets,protocol);
 
 
 
-  AsciiTraceHelper asciiTraceHelper;
 //   Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (outputNameRoot+".cwnd");
 //   Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream (outputNameRoot+"2.cwnd");
 //  if (protocol == "TCP"){
@@ -411,8 +424,9 @@ main (int argc, char *argv[])
   //csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
 
 
-//Allocate nodes in a fat tree shape
 
+  //Allocate nodes in a fat tree shape
+  if (animation){
   allocateNodesFatTree(k);
 
   //Animation
@@ -436,11 +450,13 @@ main (int argc, char *argv[])
         anim.UpdateNodeColor(coreRouters.Get(i), 255, 0, 0);
 
   anim.EnablePacketMetadata(true);
-
+  }
 
   ////////////////////
   //Flow Monitor
   ////////////////////
+  AsciiTraceHelper asciiTraceHelper;
+
   FlowMonitorHelper flowHelper;
   Ptr<FlowMonitor>  flowMonitor;
   Ptr<Ipv4FlowClassifier> classifier;
@@ -451,7 +467,7 @@ main (int argc, char *argv[])
   	flowMonitor = flowHelper.InstallAll ();
   }
 
-  Simulator::Stop (Seconds (1000));
+  Simulator::Stop (Seconds (100));
   Simulator::Run ();
 
   if (monitor){
@@ -464,20 +480,27 @@ main (int argc, char *argv[])
 		for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i){
 
 			Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
-
+			double last_t = i->second.timeLastRxPacket.GetSeconds();
+			double first_t = i->second.timeFirstTxPacket.GetSeconds();
 			double duration = (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds());
 
-			std::cout << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+			*fct->GetStream() << duration << " " << first_t << " " << last_t <<  "\n";
+			if (duration > 40){
+
+			std::cout << "Flow " << i->first  << " (" << t.sourceAddress << " " << GetNodeName(ipToNode[ipv4AddressToString(t.sourceAddress)])  << "-> " << t.destinationAddress << ")\n";
 			std::cout << "Tx Bytes:   " << i->second.txBytes << "\n";
 			std::cout << "Rx Bytes:   " << i->second.rxBytes << "\n";
-			std::cout << "Flow duration:   " << duration << "\n";
-			*fct->GetStream() << duration << "\n";
-			std::cout << "Throughput: " << i->second.rxBytes * 8.0 / duration /1024/1024  << " Mbps\n";
+			std::cout << "Flow duration:   " << duration << " " << first_t << " " << last_t <<  "\n";
+
+			std::cout << "Throughput: " << i->second.rxBytes * 8.0 / duration /1024/1024  << " Mbps\n";}
     }
 
 //  flowHelper.SerializeToXmlFile (std::string("outputs/") + "flowmonitor", true, true);
 
   }
+
+  NS_LOG_UNCOND(Simulator::Now().GetSeconds());
+
   Simulator::Destroy ();
 
 

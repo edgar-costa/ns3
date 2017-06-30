@@ -82,6 +82,15 @@ std::string ipToString(uint8_t first,uint8_t second, uint8_t third, uint8_t four
 	return address;
 }
 
+ std::string ipv4AddressToString(Ipv4Address address){
+
+	 std::stringstream ip;
+	 ip << address;
+	 return ip.str();
+
+//  	return ipToString((address.m_address & 0xff000000) >> 24, (address.m_address & 0x00ff0000) >> 16, (address.m_address & 0x0000ff00) >> 8, address.m_address & 0x000000ff);
+ }
+
 //Returns node if added to the name system , 0 if it does not exist
 Ptr<Node> GetNode(std::string name){
 	return Names::Find<Node>(name);

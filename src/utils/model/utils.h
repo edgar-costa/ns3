@@ -24,6 +24,7 @@ std::string ipToString(uint8_t first,uint8_t second, uint8_t third, uint8_t four
 Ptr<Node> GetNode(std::string name);
 void allocateNodesFatTree(int k);
 std::string GetNodeName(Ptr<Node> node);
+std::string ipv4AddressToString(Ipv4Address address);
 
 
 template <typename T>

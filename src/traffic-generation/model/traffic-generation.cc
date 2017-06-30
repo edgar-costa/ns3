@@ -213,7 +213,7 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 			uint16_t dport = randomFromVector<uint16_t>(availablePorts);
 
 			//create sender
-			installSimpleSend((*host), dst,	dport, sendingRate, 8830, "TCP");
+			installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 		}
 		index++;
 	}
