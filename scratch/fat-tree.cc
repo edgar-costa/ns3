@@ -27,7 +27,7 @@
 #include "ns3/mobility-module.h"
 #include "ns3/netanim-module.h"
 #include "ns3/traffic-control-module.h"
-#include "ns3/traffic-generation.h"
+#include "ns3/traffic-generation-module.h"
 #include "ns3/flow-monitor-module.h"
 #include "ns3/utils.h"
 
@@ -84,11 +84,6 @@ main (int argc, char *argv[])
 	RngSeedManager::SetRun (1);   // Changes run number from default of 1 to 7
 
   //Enable logging
-	//LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
-	//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
-  LogComponentEnable("fat-tree", LOG_ERROR);
-  LogComponentEnable("utils", LOG_ERROR);
-
 
 
   //Command line arguments
@@ -132,6 +127,14 @@ main (int argc, char *argv[])
 
   cmd.Parse (argc, argv);
 
+	if (debug){
+		//LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
+		//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
+		LogComponentEnable("fat-tree", LOG_ERROR);
+		LogComponentEnable("utils", LOG_ERROR);
+		LogComponentEnable("traffic-generation", LOG_DEBUG);
+	}
+
   //Update root name
   outputNameRoot = outputNameRoot + "-" + experimentName;
 
@@ -155,7 +158,7 @@ main (int argc, char *argv[])
 	Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(rtt)));
 	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MilliSeconds (minRTO)));
 	Config::SetDefault ("ns3::TcpSocketBase::MaxSegLifetime",DoubleValue(0));
-	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1448));
+	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1446));
 	Config::SetDefault ("ns3::TcpSocket::DataRetries", UintegerValue (5000));
 	Config::SetDefault ("ns3::TcpSocket::ConnCount",UintegerValue(5000));
 
@@ -386,7 +389,7 @@ main (int argc, char *argv[])
 //  //Prepare sink app
   std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 5, 1000 , protocol);
 
-  startStride(hosts, hostToPort, dataRate, 1, k);
+  startStride(hosts, hostToPort, dataRate, 2, k);
 
 
 
@@ -420,7 +423,7 @@ main (int argc, char *argv[])
   //links["h_0_1->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_1"));
 
 //
-  //csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_3_0->r_3_e0"].Get(0), bool(1));
   //csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
 
 
@@ -467,7 +470,7 @@ main (int argc, char *argv[])
   	flowMonitor = flowHelper.InstallAll ();
   }
 
-  Simulator::Stop (Seconds (100));
+  Simulator::Stop (Seconds (6000));
   Simulator::Run ();
 
   if (monitor){
@@ -485,21 +488,20 @@ main (int argc, char *argv[])
 			double duration = (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstTxPacket.GetSeconds());
 
 			*fct->GetStream() << duration << " " << first_t << " " << last_t <<  "\n";
-			if (duration > 40){
 
-			std::cout << "Flow " << i->first  << " (" << t.sourceAddress << " " << GetNodeName(ipToNode[ipv4AddressToString(t.sourceAddress)])  << "-> " << t.destinationAddress << ")\n";
-			std::cout << "Tx Bytes:   " << i->second.txBytes << "\n";
-			std::cout << "Rx Bytes:   " << i->second.rxBytes << "\n";
+			std::cout << "Flow " << i->first << " (" << (GetNodeName(ipToNode[ipv4AddressToString(t.sourceAddress)])) << "-> " << GetNodeName(ipToNode[ipv4AddressToString(t.destinationAddress)]) << ")\n";
+
+//			std::cout << "Tx Bytes:   " << i->second.txBytes << "\n";
+//			std::cout << "Rx Bytes:   " << i->second.rxBytes << "\n";
 			std::cout << "Flow duration:   " << duration << " " << first_t << " " << last_t <<  "\n";
 
 			std::cout << "Throughput: " << i->second.rxBytes * 8.0 / duration /1024/1024  << " Mbps\n";}
-    }
+
 
 //  flowHelper.SerializeToXmlFile (std::string("outputs/") + "flowmonitor", true, true);
 
   }
 
-  NS_LOG_UNCOND(Simulator::Now().GetSeconds());
 
   Simulator::Destroy ();
 
