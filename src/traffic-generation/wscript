@@ -11,6 +11,8 @@ def build(bld):
     module.source = [
         'model/traffic-generation.cc',
         'model/simple-send.cc',
+        'model/custom-bulk-application.cc',
+        'helper/custom-bulk-helper.cc',
         'helper/traffic-generation-helper.cc',
         ]
 
@@ -24,6 +26,8 @@ def build(bld):
     headers.source = [
         'model/traffic-generation.h',
         'model/simple-send.h',
+        'helper/custom-bulk-helper.h',
+        'model/custom-bulk-application.h',
         'helper/traffic-generation-helper.h',
         ]
 

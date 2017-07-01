@@ -59,7 +59,9 @@ Ptr<Socket> installSimpleSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t sin
 }
 
 //DO THE SAME WITH THE BULK APP, WHICH IS PROBABLY WHAT WE WANT TO HAVE.
+void installBulkSend(){
 
+}
 
 
 

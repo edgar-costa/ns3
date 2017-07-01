@@ -132,7 +132,7 @@ main (int argc, char *argv[])
 		//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
 		LogComponentEnable("fat-tree", LOG_ERROR);
 		LogComponentEnable("utils", LOG_ERROR);
-		LogComponentEnable("traffic-generation", LOG_DEBUG);
+		//LogComponentEnable("traffic-generation", LOG_DEBUG);
 	}
 
   //Update root name
