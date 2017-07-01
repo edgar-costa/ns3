@@ -29,28 +29,28 @@
 #include "ns3/uinteger.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/tcp-socket-factory.h"
-#include "bulk-send-application.h"
+#include "custom-bulk-application.h"
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("BulkSendApplication");
+NS_LOG_COMPONENT_DEFINE ("CustomBulkApplication");
 
-NS_OBJECT_ENSURE_REGISTERED (BulkSendApplication);
+NS_OBJECT_ENSURE_REGISTERED (CustomBulkApplication);
 
 TypeId
-BulkSendApplication::GetTypeId (void)
+CustomBulkApplication::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::BulkSendApplication")
+  static TypeId tid = TypeId ("ns3::CustomBulkApplication")
     .SetParent<Application> ()
     .SetGroupName("Applications") 
-    .AddConstructor<BulkSendApplication> ()
+    .AddConstructor<CustomBulkApplication> ()
     .AddAttribute ("SendSize", "The amount of data to send each time.",
                    UintegerValue (512),
-                   MakeUintegerAccessor (&BulkSendApplication::m_sendSize),
+                   MakeUintegerAccessor (&CustomBulkApplication::m_sendSize),
                    MakeUintegerChecker<uint32_t> (1))
     .AddAttribute ("Remote", "The address of the destination",
                    AddressValue (),
-                   MakeAddressAccessor (&BulkSendApplication::m_peer),
+                   MakeAddressAccessor (&CustomBulkApplication::m_peer),
                    MakeAddressChecker ())
     .AddAttribute ("MaxBytes",
                    "The total number of bytes to send. "
@@ -58,21 +58,21 @@ BulkSendApplication::GetTypeId (void)
                    "no data  is sent again. The value zero means "
                    "that there is no limit.",
                    UintegerValue (0),
-                   MakeUintegerAccessor (&BulkSendApplication::m_maxBytes),
+                   MakeUintegerAccessor (&CustomBulkApplication::m_maxBytes),
                    MakeUintegerChecker<uint64_t> ())
     .AddAttribute ("Protocol", "The type of protocol to use.",
                    TypeIdValue (TcpSocketFactory::GetTypeId ()),
-                   MakeTypeIdAccessor (&BulkSendApplication::m_tid),
+                   MakeTypeIdAccessor (&CustomBulkApplication::m_tid),
                    MakeTypeIdChecker ())
     .AddTraceSource ("Tx", "A new packet is created and is sent",
-                     MakeTraceSourceAccessor (&BulkSendApplication::m_txTrace),
+                     MakeTraceSourceAccessor (&CustomBulkApplication::m_txTrace),
                      "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
 
 
-BulkSendApplication::BulkSendApplication ()
+CustomBulkApplication::CustomBulkApplication ()
   : m_socket (0),
     m_connected (false),
     m_totBytes (0)
@@ -80,27 +80,27 @@ BulkSendApplication::BulkSendApplication ()
   NS_LOG_FUNCTION (this);
 }
 
-BulkSendApplication::~BulkSendApplication ()
+CustomBulkApplication::~CustomBulkApplication ()
 {
   NS_LOG_FUNCTION (this);
 }
 
 void
-BulkSendApplication::SetMaxBytes (uint64_t maxBytes)
+CustomBulkApplication::SetMaxBytes (uint64_t maxBytes)
 {
   NS_LOG_FUNCTION (this << maxBytes);
   m_maxBytes = maxBytes;
 }
 
 Ptr<Socket>
-BulkSendApplication::GetSocket (void) const
+CustomBulkApplication::GetSocket (void) const
 {
   NS_LOG_FUNCTION (this);
   return m_socket;
 }
 
 void
-BulkSendApplication::DoDispose (void)
+CustomBulkApplication::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
 
@@ -110,7 +110,7 @@ BulkSendApplication::DoDispose (void)
 }
 
 // Application Methods
-void BulkSendApplication::StartApplication (void) // Called at time specified by Start
+void CustomBulkApplication::StartApplication (void) // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
 
@@ -140,10 +140,10 @@ void BulkSendApplication::StartApplication (void) // Called at time specified by
       m_socket->Connect (m_peer);
       m_socket->ShutdownRecv ();
       m_socket->SetConnectCallback (
-        MakeCallback (&BulkSendApplication::ConnectionSucceeded, this),
-        MakeCallback (&BulkSendApplication::ConnectionFailed, this));
+        MakeCallback (&CustomBulkApplication::ConnectionSucceeded, this),
+        MakeCallback (&CustomBulkApplication::ConnectionFailed, this));
       m_socket->SetSendCallback (
-        MakeCallback (&BulkSendApplication::DataSend, this));
+        MakeCallback (&CustomBulkApplication::DataSend, this));
     }
   if (m_connected)
     {
@@ -151,7 +151,7 @@ void BulkSendApplication::StartApplication (void) // Called at time specified by
     }
 }
 
-void BulkSendApplication::StopApplication (void) // Called at time specified by Stop
+void CustomBulkApplication::StopApplication (void) // Called at time specified by Stop
 {
   NS_LOG_FUNCTION (this);
 
@@ -162,14 +162,14 @@ void BulkSendApplication::StopApplication (void) // Called at time specified by 
     }
   else
     {
-      NS_LOG_WARN ("BulkSendApplication found null socket to close in StopApplication");
+      NS_LOG_WARN ("CustomBulkApplication found null socket to close in StopApplication");
     }
 }
 
 
 // Private helpers
 
-void BulkSendApplication::SendData (void)
+void CustomBulkApplication::SendData (void)
 {
   NS_LOG_FUNCTION (this);
 
@@ -210,21 +210,21 @@ void BulkSendApplication::SendData (void)
     }
 }
 
-void BulkSendApplication::ConnectionSucceeded (Ptr<Socket> socket)
+void CustomBulkApplication::ConnectionSucceeded (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  NS_LOG_LOGIC ("BulkSendApplication Connection succeeded");
+  NS_LOG_LOGIC ("CustomBulkApplication Connection succeeded");
   m_connected = true;
   SendData ();
 }
 
-void BulkSendApplication::ConnectionFailed (Ptr<Socket> socket)
+void CustomBulkApplication::ConnectionFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  NS_LOG_LOGIC ("BulkSendApplication, Connection Failed");
+  NS_LOG_LOGIC ("CustomBulkApplication, Connection Failed");
 }
 
-void BulkSendApplication::DataSend (Ptr<Socket>, uint32_t)
+void CustomBulkApplication::DataSend (Ptr<Socket>, uint32_t)
 {
   NS_LOG_FUNCTION (this);
 

@@ -18,8 +18,8 @@
  * Author: George F. Riley <riley@ece.gatech.edu>
  */
 
-#ifndef BULK_SEND_APPLICATION_H
-#define BULK_SEND_APPLICATION_H
+#ifndef CUSTOM_BULK_APPLICATION_H
+#define CUSTOM_BULK_APPLICATION_H
 
 #include "ns3/address.h"
 #include "ns3/application.h"
@@ -34,7 +34,7 @@ class Socket;
 
 /**
  * \ingroup applications
- * \defgroup bulksend BulkSendApplication
+ * \defgroup bulksend CustomBulkApplication
  *
  * This traffic generator simply sends data
  * as fast as possible up to MaxBytes or until
@@ -65,7 +65,7 @@ class Socket;
  * UDP sockets can not be used.
  *
  */
-class BulkSendApplication : public Application
+class CustomBulkApplication : public Application
 {
 public:
   /**
@@ -74,9 +74,9 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  BulkSendApplication ();
+  CustomBulkApplication ();
 
-  virtual ~BulkSendApplication ();
+  virtual ~CustomBulkApplication ();
 
   /**
    * \brief Set the upper bound for the total number of bytes to send.
