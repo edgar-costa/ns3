@@ -80,8 +80,7 @@ main (int argc, char *argv[])
 	//Set simulator's time resolution (click)
 	Time::SetResolution (Time::NS);
 
-	//Change that if i want to get different random values each run otherwise i will always get the same.
-	RngSeedManager::SetRun (1);   // Changes run number from default of 1 to 7
+
 
   //Enable logging
 
@@ -95,6 +94,7 @@ main (int argc, char *argv[])
   uint16_t packet_size = 1400;
   uint16_t queue_size = 20;
   int64_t flowlet_gap = 50;
+  uint64_t runStep = 1;
 
   bool animation = false;
   bool monitor = false;
@@ -123,12 +123,17 @@ main (int argc, char *argv[])
 	cmd.AddValue("dataRate", "Bandwidth of link, used in multiple experiments", dataRate);
   cmd.AddValue("QueueSize", "Sink port", queue_size);
   cmd.AddValue("FlowletGap", "Sink port", flowlet_gap);
+  cmd.AddValue("RunStep", "Random generator starts at", runStep);
+
   cmd.AddValue("K", "Fat tree size", k);
 
   cmd.Parse (argc, argv);
 
+	//Change that if i want to get different random values each run otherwise i will always get the same.
+	RngSeedManager::SetRun (runStep);   // Changes run number from default of 1 to 7
+
 	if (debug){
-		//LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
+//		LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
 		//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
 		LogComponentEnable("fat-tree", LOG_ERROR);
 		LogComponentEnable("utils", LOG_ERROR);
@@ -389,7 +394,14 @@ main (int argc, char *argv[])
 //  //Prepare sink app
   std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 5, 1000 , protocol);
 
-  startStride(hosts, hostToPort, dataRate, 1, k);
+  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10));
+  installBulkSend(GetNode("h_0_1"), GetNode("h_1_1"), hostToPort["h_1_1"][1], BytesFromRate(DataRate("10Mbps"),10));
+  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10));
+  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10));
+
+
+
+  //startStride(hosts, hostToPort, dataRate, 1, k);
 
 
 
@@ -423,36 +435,40 @@ main (int argc, char *argv[])
   //links["h_0_1->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_1"));
 
 //
-  csma.EnablePcap(outputNameRoot, links["h_3_0->r_3_e0"].Get(0), bool(1));
-  //csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
-
+  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_0_2->r_0_e1"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_0_3->r_0_e1"].Get(0), bool(1));
 
 
   //Allocate nodes in a fat tree shape
+	allocateNodesFatTree(k);
+	AnimationInterface anim(outputNameRoot+".anim");
   if (animation){
-  allocateNodesFatTree(k);
+		//Animation
+		//AnimationInterface anim(outputNameRoot+".anim");
+		anim.SetMaxPktsPerTraceFile(10000000);
 
-  //Animation
-  AnimationInterface anim(outputNameRoot+".anim");
-  anim.SetMaxPktsPerTraceFile(10000000);
+	//  setting colors
+		for (uint32_t i = 0; i < hosts.GetN(); i++){
+					Ptr<Node> host = hosts.Get(i);
+					anim.UpdateNodeColor(host, 0, 0, 255);
+					anim.UpdateNodeSize(host->GetId(), 0.5, 0.5);
 
-//  setting colors
-  for (uint32_t i = 0; i < hosts.GetN(); i++){
-  			Ptr<Node> host = hosts.Get(i);
-        anim.UpdateNodeColor(host, 0, 0, 255);
-  			anim.UpdateNodeSize(host->GetId(), 0.5, 0.5);
+		}
+		for (uint32_t i = 0; i < edgeRouters.GetN(); i++)
+		{
+					anim.UpdateNodeColor(edgeRouters.Get(i), 0, 200, 0);
+					anim.UpdateNodeColor(aggRouters.Get(i), 0, 200, 0);
+		}
 
+		for (uint32_t i = 0; i < coreRouters.GetN(); i++)
+					anim.UpdateNodeColor(coreRouters.Get(i), 255, 0, 0);
+
+		anim.EnablePacketMetadata(true);
   }
-  for (uint32_t i = 0; i < edgeRouters.GetN(); i++)
-  {
-        anim.UpdateNodeColor(edgeRouters.Get(i), 0, 200, 0);
-  			anim.UpdateNodeColor(aggRouters.Get(i), 0, 200, 0);
-  }
-
-  for (uint32_t i = 0; i < coreRouters.GetN(); i++)
-        anim.UpdateNodeColor(coreRouters.Get(i), 255, 0, 0);
-
-  anim.EnablePacketMetadata(true);
+  else{
+  	anim.SetStopTime(Seconds(0));
   }
 
   ////////////////////

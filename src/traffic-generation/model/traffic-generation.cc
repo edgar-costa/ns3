@@ -129,7 +129,7 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 
 			//create sender
 			NS_LOG_DEBUG("Start Sender: src:" << GetNodeName(*host) << " dst:" <<  GetNodeName(dst) << " dport:" << dport);
-			installBulkSend((*host), dst, dport, 131072*10);
+			installBulkSend((*host), dst, dport, BytesFromRate(DataRate("10Mbps"), 0.1));
 			//installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 		}
 		index++;

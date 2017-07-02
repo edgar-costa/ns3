@@ -44,6 +44,14 @@ GetNodeIp(std::string node_name)
   return Ipv4Address("127.0.0.1");
 }
 
+//* Returns the amount of bytes needed to send at dataRate during time seconds.
+uint64_t BytesFromRate(DataRate dataRate, double time){
+
+		double bytes = ((double)dataRate.GetBitRate()/8) * time;
+		NS_LOG_UNCOND("Bytes to send: " << bytes);
+		return bytes;
+}
+
 Ipv4Address
 GetNodeIp(Ptr<Node> node)
 {
