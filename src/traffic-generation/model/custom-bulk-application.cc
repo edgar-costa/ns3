@@ -172,7 +172,9 @@ void CustomBulkApplication::StopApplication (void) // Called at time specified b
 void CustomBulkApplication::SendData (void)
 {
   NS_LOG_FUNCTION (this);
-
+  //TODO SAVE TIME ???
+  double startTime  = Simulator::Now().GetSeconds();
+  NS_LOG_UNCOND(startTime);
   while (m_maxBytes == 0 || m_totBytes < m_maxBytes)
     { // Time to send more
 
@@ -196,7 +198,7 @@ void CustomBulkApplication::SendData (void)
         }
       // We exit this loop when actual < toSend as the send side
       // buffer is full. The "DataSent" callback will pop when
-      // some buffer space has freed ip.
+      // some buffer space has freed up.
       if ((unsigned)actual != toSend)
         {
           break;
@@ -207,6 +209,9 @@ void CustomBulkApplication::SendData (void)
     {
       m_socket->Close ();
       m_connected = false;
+      double endTime  = Simulator::Now().GetSeconds();
+      NS_LOG_UNCOND("Flow Duration: " << (endTime-startTime) << " Seconds");
+      //TODO SAVE TIME
     }
 }
 

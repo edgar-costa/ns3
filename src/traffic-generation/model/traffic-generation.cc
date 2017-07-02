@@ -59,7 +59,17 @@ Ptr<Socket> installSimpleSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t sin
 }
 
 //DO THE SAME WITH THE BULK APP, WHICH IS PROBABLY WHAT WE WANT TO HAVE.
-void installBulkSend(){
+Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport, uint64_t size){
+
+  Ipv4Address addr = GetNodeIp(dstHost);
+  Address sinkAddress (InetSocketAddress (addr, dport));
+
+  CustomBulkHelper bulkHelper("ns3:TcpSocketFactory", sinkAddress);
+  bulkHelper.SetAttribute("MaxBytes", UintegerValue(size));
+  ApplicationContainer app = bulkHelper.Install(srcHost);
+
+  app.Start(Seconds(1.));
+
 
 }
 
