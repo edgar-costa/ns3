@@ -151,8 +151,8 @@ main (int argc, char *argv[])
 	int rtt = 12*delay;
 
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
-  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
-  Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
+//  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
+//  Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
 
   //still have to understand this one by one
 	Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(rtt)));
@@ -389,7 +389,7 @@ main (int argc, char *argv[])
 //  //Prepare sink app
   std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 5, 1000 , protocol);
 
-  startStride(hosts, hostToPort, dataRate, 2, k);
+  startStride(hosts, hostToPort, dataRate, 1, k);
 
 
 

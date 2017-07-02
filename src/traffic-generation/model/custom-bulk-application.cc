@@ -30,6 +30,7 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/tcp-socket-factory.h"
 #include "custom-bulk-application.h"
+#include "ns3/utils-module.h"
 
 namespace ns3 {
 
@@ -75,7 +76,8 @@ CustomBulkApplication::GetTypeId (void)
 CustomBulkApplication::CustomBulkApplication ()
   : m_socket (0),
     m_connected (false),
-    m_totBytes (0)
+    m_totBytes (0),
+		m_startTime(0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -109,6 +111,12 @@ CustomBulkApplication::DoDispose (void)
   Application::DoDispose ();
 }
 
+uint32_t CustomBulkApplication::GetTxBufferSize(void){
+  NS_LOG_FUNCTION (this);
+
+  return DynamicCast<TcpSocketBase>(m_socket)->GetTxBuffer()->Size();
+}
+
 // Application Methods
 void CustomBulkApplication::StartApplication (void) // Called at time specified by Start
 {
@@ -137,6 +145,8 @@ void CustomBulkApplication::StartApplication (void) // Called at time specified 
           m_socket->Bind ();
         }
 
+      //Save Starting time just before connection starts
+      m_startTime  = Simulator::Now().GetSeconds();
       m_socket->Connect (m_peer);
       m_socket->ShutdownRecv ();
       m_socket->SetConnectCallback (
@@ -145,6 +155,7 @@ void CustomBulkApplication::StartApplication (void) // Called at time specified 
       m_socket->SetSendCallback (
         MakeCallback (&CustomBulkApplication::DataSend, this));
     }
+
   if (m_connected)
     {
       SendData ();
@@ -172,9 +183,6 @@ void CustomBulkApplication::StopApplication (void) // Called at time specified b
 void CustomBulkApplication::SendData (void)
 {
   NS_LOG_FUNCTION (this);
-  //TODO SAVE TIME ???
-  double startTime  = Simulator::Now().GetSeconds();
-  NS_LOG_UNCOND(startTime);
   while (m_maxBytes == 0 || m_totBytes < m_maxBytes)
     { // Time to send more
 
@@ -205,12 +213,26 @@ void CustomBulkApplication::SendData (void)
         }
     }
   // Check if time to close (all sent)
-  if (m_totBytes == m_maxBytes && m_connected)
+  if (m_totBytes == m_maxBytes && m_connected && (GetTxBufferSize() == 0))
     {
-      m_socket->Close ();
+
+    	//waits until the txbuffer is empty
+//  		while (GetTxBufferSize() !=0){
+//  			NS_LOG_UNCOND(GetTxBufferSize());
+//  		}
+
+//    	uint32_t availableBuffer = m_socket->GetTxAvailable();
+
+			m_socket->Close ();
       m_connected = false;
+
       double endTime  = Simulator::Now().GetSeconds();
-      NS_LOG_UNCOND("Flow Duration: " << (endTime-startTime) << " Seconds");
+
+      std::string srcName = GetNodeName(m_socket->GetNode());
+      InetSocketAddress inetDstAddr = InetSocketAddress::ConvertFrom(this->m_peer);
+
+      NS_LOG_UNCOND(endTime << " " << m_startTime);
+      NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4()  << ") "  <<  (endTime-m_startTime) << " Seconds");
       //TODO SAVE TIME
     }
 }

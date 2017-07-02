@@ -99,6 +99,12 @@ public:
    */
   Ptr<Socket> GetSocket (void) const;
 
+  /**
+   * \brief Get the size of the sockets tx buffer
+   * \return Current size
+   */
+  uint32_t GetTxBufferSize(void);
+
 protected:
   virtual void DoDispose (void);
 private:
@@ -118,6 +124,7 @@ private:
   uint64_t        m_maxBytes;     //!< Limit total number of bytes sent
   uint64_t        m_totBytes;     //!< Total bytes sent so far
   TypeId          m_tid;          //!< The type of protocol to use.
+  double 					m_startTime;    //!<Starting sending time
 
   /// Traced Callback: sent packets
   TracedCallback<Ptr<const Packet> > m_txTrace;

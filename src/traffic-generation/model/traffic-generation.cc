@@ -4,6 +4,7 @@
 #include "simple-send.h"
 #include "ns3/applications-module.h"
 #include "ns3/utils.h"
+#include "ns3/traffic-generation-module.h"
 
 NS_LOG_COMPONENT_DEFINE ("traffic-generation");
 
@@ -64,13 +65,21 @@ Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport
   Ipv4Address addr = GetNodeIp(dstHost);
   Address sinkAddress (InetSocketAddress (addr, dport));
 
-  CustomBulkHelper bulkHelper("ns3:TcpSocketFactory", sinkAddress);
-  bulkHelper.SetAttribute("MaxBytes", UintegerValue(size));
-  ApplicationContainer app = bulkHelper.Install(srcHost);
-
-  app.Start(Seconds(1.));
+  Ptr<CustomBulkApplication> bulkSender = CreateObject<CustomBulkApplication>();
 
 
+  bulkSender->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
+  bulkSender->SetAttribute("MaxBytes", UintegerValue(size));
+  bulkSender->SetAttribute("Remote", AddressValue(sinkAddress));
+
+  //Install app
+  srcHost->AddApplication(bulkSender);
+
+  bulkSender->SetStartTime(Seconds(1.));
+  bulkSender->SetStopTime(Seconds(1000));
+
+
+  return bulkSender->GetSocket();
 }
 
 
@@ -120,7 +129,8 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 
 			//create sender
 			NS_LOG_DEBUG("Start Sender: src:" << GetNodeName(*host) << " dst:" <<  GetNodeName(dst) << " dport:" << dport);
-			installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
+			installBulkSend((*host), dst, dport, 131072*10);
+			//installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 		}
 		index++;
 	}
