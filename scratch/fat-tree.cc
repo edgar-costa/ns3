@@ -141,7 +141,10 @@ main (int argc, char *argv[])
 	}
 
   //Update root name
-  outputNameRoot = outputNameRoot + "-" + experimentName;
+	std::ostringstream run;
+	run << runStep;
+
+  outputNameRoot = outputNameRoot + "-" + experimentName + "_" +  std::string(run.str());
 
   //General default configurations
 
@@ -169,7 +172,11 @@ main (int argc, char *argv[])
 
 	Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(2*rtt)));
 	Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
-  //Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
+  Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
+
+  //Define acsii helper
+  AsciiTraceHelper asciiTraceHelper;
+
 
   //Define Interfaces
 
@@ -394,14 +401,17 @@ main (int argc, char *argv[])
 //  //Prepare sink app
   std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 5, 1000 , protocol);
 
-  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10));
-  installBulkSend(GetNode("h_0_1"), GetNode("h_1_1"), hostToPort["h_1_1"][1], BytesFromRate(DataRate("10Mbps"),10));
-  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10));
-  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10));
+//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
+//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
+//
+//  installBulkSend(GetNode("h_0_1"), GetNode("h_1_1"), hostToPort["h_1_1"][1], BytesFromRate(DataRate("10Mbps"),10),1);
+//  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10),1.1);
+//  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1.2);
+//
 
+  Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameRoot+".fct");
 
-
-  //startStride(hosts, hostToPort, dataRate, 1, k);
+  startStride(hosts, hostToPort, dataRate, 1, k, flowsCompletionTime);
 
 
 
@@ -435,11 +445,10 @@ main (int argc, char *argv[])
   //links["h_0_1->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_1"));
 
 //
-  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
-  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
-  csma.EnablePcap(outputNameRoot, links["h_0_2->r_0_e1"].Get(0), bool(1));
-  csma.EnablePcap(outputNameRoot, links["h_0_3->r_0_e1"].Get(0), bool(1));
-
+//  csma.EnablePcap(outputNameRoot, links["r_0_a0->r_c0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["r_0_a0->r_c1"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c2"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c3"].Get(0), bool(1));
 
   //Allocate nodes in a fat tree shape
 	allocateNodesFatTree(k);
@@ -474,7 +483,6 @@ main (int argc, char *argv[])
   ////////////////////
   //Flow Monitor
   ////////////////////
-  AsciiTraceHelper asciiTraceHelper;
 
   FlowMonitorHelper flowHelper;
   Ptr<FlowMonitor>  flowMonitor;

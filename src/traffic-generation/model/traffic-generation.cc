@@ -60,7 +60,7 @@ Ptr<Socket> installSimpleSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t sin
 }
 
 //DO THE SAME WITH THE BULK APP, WHICH IS PROBABLY WHAT WE WANT TO HAVE.
-Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport, uint64_t size){
+Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport, uint64_t size, double startTime, Ptr<OutputStreamWrapper> fctFile){
 
   Ipv4Address addr = GetNodeIp(dstHost);
   Address sinkAddress (InetSocketAddress (addr, dport));
@@ -71,11 +71,12 @@ Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport
   bulkSender->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
   bulkSender->SetAttribute("MaxBytes", UintegerValue(size));
   bulkSender->SetAttribute("Remote", AddressValue(sinkAddress));
+  bulkSender->SetOutputFile(fctFile);
 
   //Install app
   srcHost->AddApplication(bulkSender);
 
-  bulkSender->SetStartTime(Seconds(1.));
+  bulkSender->SetStartTime(Seconds(startTime));
   bulkSender->SetStopTime(Seconds(1000));
 
 
@@ -110,7 +111,8 @@ std::unordered_map <std::string, std::vector<uint16_t>> installSinks(NodeContain
 }
 
 
-void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts, DataRate sendingRate, uint16_t nFlows, uint16_t offset){
+void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts,
+		DataRate sendingRate, uint16_t nFlows, uint16_t offset, Ptr<OutputStreamWrapper> fctFile){
 
 //	uint16_t vector_size = hostsToPorts.begin()->second.size();
 	uint16_t numHosts =  hosts.GetN();
@@ -129,7 +131,7 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 
 			//create sender
 			NS_LOG_DEBUG("Start Sender: src:" << GetNodeName(*host) << " dst:" <<  GetNodeName(dst) << " dport:" << dport);
-			installBulkSend((*host), dst, dport, BytesFromRate(DataRate("10Mbps"), 0.1));
+			installBulkSend((*host), dst, dport, BytesFromRate(DataRate("10Mbps"), 10),1, fctFile);
 			//installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 		}
 		index++;

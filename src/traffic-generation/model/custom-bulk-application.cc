@@ -117,6 +117,11 @@ uint32_t CustomBulkApplication::GetTxBufferSize(void){
   return DynamicCast<TcpSocketBase>(m_socket)->GetTxBuffer()->Size();
 }
 
+void CustomBulkApplication::SetOutputFile(Ptr<OutputStreamWrapper> file){
+	m_outputFile = file;
+}
+
+
 // Application Methods
 void CustomBulkApplication::StartApplication (void) // Called at time specified by Start
 {
@@ -231,8 +236,9 @@ void CustomBulkApplication::SendData (void)
       std::string srcName = GetNodeName(m_socket->GetNode());
       InetSocketAddress inetDstAddr = InetSocketAddress::ConvertFrom(this->m_peer);
 
-      NS_LOG_UNCOND(endTime << " " << m_startTime);
       NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4()  << ") "  <<  (endTime-m_startTime) << " Seconds");
+      *(m_outputFile->GetStream ()) << (endTime-m_startTime) << "\n";
+
       //TODO SAVE TIME
     }
 }

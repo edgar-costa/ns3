@@ -26,6 +26,7 @@
 #include "ns3/event-id.h"
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
+#include "ns3/output-stream-wrapper.h"
 
 namespace ns3 {
 
@@ -105,6 +106,8 @@ public:
    */
   uint32_t GetTxBufferSize(void);
 
+  void SetOutputFile(Ptr<OutputStreamWrapper> file);
+
 protected:
   virtual void DoDispose (void);
 private:
@@ -125,6 +128,8 @@ private:
   uint64_t        m_totBytes;     //!< Total bytes sent so far
   TypeId          m_tid;          //!< The type of protocol to use.
   double 					m_startTime;    //!<Starting sending time
+
+  Ptr<OutputStreamWrapper> m_outputFile;
 
   /// Traced Callback: sent packets
   TracedCallback<Ptr<const Packet> > m_txTrace;
