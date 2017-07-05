@@ -5,6 +5,7 @@
 #include <string.h>
 #include <fstream>
 #include <string>
+#include <vector>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -26,7 +27,9 @@ void allocateNodesFatTree(int k);
 std::string GetNodeName(Ptr<Node> node);
 std::string ipv4AddressToString(Ipv4Address address);
 uint64_t BytesFromRate(DataRate dataRate, double time);
-
+std::vector< std::pair<double,uint64_t>> GetDistribution(std::string distributionFile);
+uint64_t GetFlowSizeFromDistribution(std::vector< std::pair<double,uint64_t>> distribution, double uniformSample);
+std::pair<uint16_t, uint16_t> GetHostPositionPair(std::string name);
 
 template <typename T>
 T randomFromVector(std::vector<T> & vect){

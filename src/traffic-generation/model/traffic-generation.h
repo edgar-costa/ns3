@@ -20,6 +20,13 @@ std::unordered_map <std::string, std::vector<uint16_t>> installSinks(NodeContain
 Ptr<Socket> installSimpleSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t sinkPort, DataRate dataRate, uint32_t numPackets, std::string protocol);
 Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport, uint64_t size, double startTime, Ptr<OutputStreamWrapper> fctFile);
 void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts, DataRate sendingRate, uint16_t nFlows, uint16_t offset, Ptr<OutputStreamWrapper> fctFile);
+
+void startRandom(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts,
+		DataRate sendingRate, uint16_t flowsPerHost, uint16_t k, Ptr<OutputStreamWrapper> fctFile);
+
+void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts,
+		uint16_t k, Ptr<OutputStreamWrapper> fctFile, std::string distributionFile, uint32_t interArrivalFlow, double sameNetProb, double interPodProb, double simulationTime);
+
 }
 
 #endif /* TRAFFIC_GENERATION_H */

@@ -80,52 +80,60 @@ main (int argc, char *argv[])
 	//Set simulator's time resolution (click)
 	Time::SetResolution (Time::NS);
 
-
-
-  //Enable logging
-
+  //Fat tree parameters
+  int k =  4;
+  DataRate linkBandiwdth("10Mbps");
 
   //Command line arguments
   std::string ecmpMode = "ECMP_NONE";
   std::string protocol = "TCP";
   std::string experimentName = "default";
-  uint16_t sinkPort = 8582;
-  uint32_t num_packets = 100;
-  uint16_t packet_size = 1400;
-  uint16_t queue_size = 20;
+  uint16_t queue_size = 100;
   int64_t flowlet_gap = 50;
   uint64_t runStep = 1;
+  uint64_t delay = 5;  //milliseconds
+  double simulationTime = 10;
+  uint64_t interArrivalFlowsTime = (k/2) * (k/2) * k; //at the same amout per seconds as hosts we have in the network
+  double intraPodProb = 0;
+  double interPodProb = 1;
+  std::string sizeDistributionFile = "distributions/default.txt";
+
+	uint32_t minRTO = 10;
+	int rtt = 12*delay;
 
   bool animation = false;
   bool monitor = false;
   bool debug = false;
 
-  //Fat tree parameters
-  int k =  4;
-  DataRate dataRate("10Mbps");
-
   CommandLine cmd;
+
+  //Misc
   cmd.AddValue("Animation", "Enable animation module" , animation);
   cmd.AddValue("Monitor", "" , monitor);
   cmd.AddValue("Debug", "" , debug);
 
-
-
+  //Naming
   cmd.AddValue("ExperimentName", "Name of the experiment: " , experimentName);
 
 
   cmd.AddValue("Protocol", "Protocol used by the traffic Default is: "+protocol , protocol);
-  cmd.AddValue("SinkPort", "Sink port", sinkPort);
-  cmd.AddValue("NumPackets", "Sink port", num_packets);
-  cmd.AddValue("PacketSize", "Sink port", packet_size);
 
+  //General
   cmd.AddValue ("EcmpMode", "EcmpMode: (0 none, 1 random, 2 flow, 3 Round_Robin)", ecmpMode);
-	cmd.AddValue("dataRate", "Bandwidth of link, used in multiple experiments", dataRate);
-  cmd.AddValue("QueueSize", "Sink port", queue_size);
-  cmd.AddValue("FlowletGap", "Sink port", flowlet_gap);
-  cmd.AddValue("RunStep", "Random generator starts at", runStep);
+	cmd.AddValue("LinkBandwidth", "Bandwidth of link, used in multiple experiments", linkBandiwdth);
+	cmd.AddValue("Delay", "Added delay between nodes", delay);
 
+	//Experiment
+	cmd.AddValue("SimulationTime", "Total simulation time (flow starting time is scheduled until that time, "
+			"the simulation time will be extended by the longest flow scheduled close to simulationTime", simulationTime);
+	cmd.AddValue("IntraPodProb","Probability of picking a destination inside the same pod", intraPodProb);
+	cmd.AddValue("InterPodProb", "Probability of picking a destination in another pod", interPodProb);
+	cmd.AddValue("InterArrivalFlowTime", "flows we start per second", interArrivalFlowsTime);
+	cmd.AddValue("SizeDistribution", "File with the flows size distribution", sizeDistributionFile);
+  cmd.AddValue("QueueSize", "Interfaces Queue length", queue_size);
+  cmd.AddValue("FlowletGap", "Inter-arrival packet time for flowlet expiration", flowlet_gap);
   cmd.AddValue("K", "Fat tree size", k);
+  cmd.AddValue("RunStep", "Random generator starts at", runStep);
 
   cmd.Parse (argc, argv);
 
@@ -137,7 +145,7 @@ main (int argc, char *argv[])
 		//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
 		LogComponentEnable("fat-tree", LOG_ERROR);
 		LogComponentEnable("utils", LOG_ERROR);
-		//LogComponentEnable("traffic-generation", LOG_DEBUG);
+		LogComponentEnable("traffic-generation", LOG_DEBUG);
 	}
 
   //Update root name
@@ -154,9 +162,7 @@ main (int argc, char *argv[])
   Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", IntegerValue(MilliSeconds(flowlet_gap).GetNanoSeconds()));
 
   //TCP
-	uint32_t minRTO = 100;
-	int delay = 10;
-	int rtt = 12*delay;
+
 
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
 //  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
@@ -193,9 +199,10 @@ main (int argc, char *argv[])
   PointToPointHelper csma;
 
 //   create point-to-point link from A to R
-  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (dataRate)));
-  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(0.5)));
+  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (linkBandiwdth)));
+  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(delay)));
   csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
+
   csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(queue_size));
 
 
@@ -399,20 +406,21 @@ main (int argc, char *argv[])
 
 
 //  //Prepare sink app
-  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 5, 1000 , protocol);
-
-//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
-//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
-//
-//  installBulkSend(GetNode("h_0_1"), GetNode("h_1_1"), hostToPort["h_1_1"][1], BytesFromRate(DataRate("10Mbps"),10),1);
-//  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10),1.1);
-//  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1.2);
-//
+  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 5, 5000 , protocol);
 
   Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameRoot+".fct");
 
-  startStride(hosts, hostToPort, dataRate, 1, k, flowsCompletionTime);
+//  startStride(hosts, hostToPort, dataRate, 1, k, flowsCompletionTime);
 
+//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
+//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
+//
+//  installBulkSend(GetNode("h_0_1"), GetNode("h_1_1"), hostToPort["h_1_1"][1], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
+//  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10),1.1, flowsCompletionTime);
+//  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1.2, flowsCompletionTime);
+//
+
+  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
 
 
   //////////////////
@@ -449,6 +457,12 @@ main (int argc, char *argv[])
 //  csma.EnablePcap(outputNameRoot, links["r_0_a0->r_c1"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c2"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c3"].Get(0), bool(1));
+
+//  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["h_0_2->r_0_e1"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["h_0_3->r_0_e1"].Get(0), bool(1));
+
 
   //Allocate nodes in a fat tree shape
 	allocateNodesFatTree(k);
@@ -525,6 +539,10 @@ main (int argc, char *argv[])
 //  flowHelper.SerializeToXmlFile (std::string("outputs/") + "flowmonitor", true, true);
 
   }
+
+
+
+
 
 
   Simulator::Destroy ();

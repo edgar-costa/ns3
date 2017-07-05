@@ -52,6 +52,63 @@ uint64_t BytesFromRate(DataRate dataRate, double time){
 		return bytes;
 }
 
+std::vector< std::pair<double,uint64_t>> GetDistribution(std::string distributionFile) {
+
+  std::vector< std::pair<double,uint64_t>> cumulativeDistribution;
+  std::ifstream infile(distributionFile);
+
+  NS_ASSERT_MSG(infile, "Please provide a valid file for reading the flow size distribution!");
+  double cumulativeProbability;
+  int size;
+  while (infile >> size >> cumulativeProbability)
+  {
+    cumulativeDistribution.push_back(std::make_pair(cumulativeProbability, size));
+  }
+
+//  for(uint32_t i = 0; i < cumulativeDistribution.size(); i++)
+//  {
+//    NS_LOG_FUNCTION(cumulativeDistribution[i].first << " " << cumulativeDistribution[i].second);
+//  }
+
+  return cumulativeDistribution;
+}
+
+//*
+//Get size from cumulative traffic distribution
+//
+
+uint64_t GetFlowSizeFromDistribution(std::vector< std::pair<double,uint64_t>> distribution, double uniformSample){
+
+  NS_ASSERT_MSG(uniformSample <= 1.0, "Provided sampled number is bigger than 1.0!");
+
+  uint64_t size =  1500; //at least 1 packet
+
+  for (uint32_t i=0; i < distribution.size(); i++){
+  	if (uniformSample <= distribution[i].first){
+  		size = distribution[i].second;
+  		break;
+  	}
+  }
+  return size;
+}
+
+//Assume a fat tree and the following naming h_x_y
+std::pair<uint16_t, uint16_t> GetHostPositionPair(std::string name){
+
+	std::stringstream text(name);
+	std::string segment;
+	std::pair<uint16_t, uint16_t> result;
+
+	std::getline(text, segment, '_');
+	std::getline(text, segment, '_');
+	result.first = (uint16_t)std::stoi(segment);
+	std::getline(text, segment, '_');
+	result.second = (uint16_t)std::stoi(segment);
+
+	return result;
+}
+
+
 Ipv4Address
 GetNodeIp(Ptr<Node> node)
 {
