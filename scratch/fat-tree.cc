@@ -89,17 +89,23 @@ main (int argc, char *argv[])
   std::string protocol = "TCP";
   std::string experimentName = "default";
   uint16_t queue_size = 100;
-  int64_t flowlet_gap = 50;
   uint64_t runStep = 1;
-  uint64_t delay = 5;  //milliseconds
   double simulationTime = 10;
   uint64_t interArrivalFlowsTime = (k/2) * (k/2) * k; //at the same amout per seconds as hosts we have in the network
   double intraPodProb = 0;
   double interPodProb = 1;
   std::string sizeDistributionFile = "distributions/default.txt";
 
-	uint32_t minRTO = 10;
-	int rtt = 12*delay;
+  uint64_t delay = 0.5;  //milliseconds
+
+	//12 because there the packet crosses 12 interfaces every RTT. Should also add the time it takes to send 1 packet to the network.
+  // my estimated RTT
+	int rtt = 12*delay + (12*12);
+
+	uint32_t minRTO = rtt*1.5;
+
+  int64_t flowlet_gap = rtt;
+
 
   bool animation = false;
   bool monitor = false;
@@ -155,6 +161,13 @@ main (int argc, char *argv[])
   outputNameRoot = outputNameRoot + "-" + experimentName + "_" +  std::string(run.str());
 
   //General default configurations
+  //putting 1500bytes into the wire
+  double packetDelay = double(1500*8)/DataRate(linkBandiwdth).GetBitRate();
+	rtt = 12*delay + (12*Seconds(packetDelay).GetMilliSeconds());
+
+	minRTO = rtt*1.5;
+
+  flowlet_gap = rtt/2; //milliseconds
 
   //Routing
   Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
@@ -164,21 +177,29 @@ main (int argc, char *argv[])
   //TCP
 
 
-  Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
 //  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
 //  Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
 
-  //still have to understand this one by one
+	Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (TcpNewReno::GetTypeId ()));
 	Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(rtt)));
-	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MilliSeconds (minRTO)));
-	Config::SetDefault ("ns3::TcpSocketBase::MaxSegLifetime",DoubleValue(0));
-	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1446));
-	Config::SetDefault ("ns3::TcpSocket::DataRetries", UintegerValue (5000));
-	Config::SetDefault ("ns3::TcpSocket::ConnCount",UintegerValue(5000));
 
-	Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(2*rtt)));
-	Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
-  Config::SetDefault("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3));
+	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MilliSeconds (minRTO))); //min RTO value that can be set
+	Config::SetDefault ("ns3::TcpSocketBase::MaxSegLifetime",DoubleValue(120));
+  Config::SetDefault ("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3)); //same than DupAckThreshold
+  Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue(MicroSeconds(100)));
+
+	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1446)); //MTU
+	Config::SetDefault ("ns3::TcpSocket::DataRetries", UintegerValue (10)); //retranmissions
+	Config::SetDefault ("ns3::TcpSocket::ConnCount",UintegerValue(10)); //retrnamissions during connection
+
+	Config::SetDefault ("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(2*rtt)));
+	Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+
+	Config::SetDefault ("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(4294967295));
+	Config::SetDefault ("ns3::TcpSocket::InitialCwnd", UintegerValue(1));
+	Config::SetDefault ("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
+
+
 
   //Define acsii helper
   AsciiTraceHelper asciiTraceHelper;
@@ -406,11 +427,11 @@ main (int argc, char *argv[])
 
 
 //  //Prepare sink app
-  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 5, 5000 , protocol);
+  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 50, 10000 , protocol);
 
   Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameRoot+".fct");
 
-//  startStride(hosts, hostToPort, dataRate, 1, k, flowsCompletionTime);
+  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 20), 1, k, flowsCompletionTime);
 
 //  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
 //  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
@@ -420,7 +441,7 @@ main (int argc, char *argv[])
 //  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1.2, flowsCompletionTime);
 //
 
-  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
+//  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
 
 
   //////////////////
@@ -458,10 +479,10 @@ main (int argc, char *argv[])
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c2"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c3"].Get(0), bool(1));
 
-//  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["h_0_2->r_0_e1"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["h_0_3->r_0_e1"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_0_2->r_0_e1"].Get(0), bool(1));
+  csma.EnablePcap(outputNameRoot, links["h_0_3->r_0_e1"].Get(0), bool(1));
 
 
   //Allocate nodes in a fat tree shape
@@ -508,8 +529,12 @@ main (int argc, char *argv[])
   	flowMonitor = flowHelper.InstallAll ();
   }
 
-  Simulator::Stop (Seconds (6000));
+  //Simulator::Schedule(Seconds(1), &printNow, 1);
+
+  Simulator::Stop (Seconds (80));
   Simulator::Run ();
+
+
 
   if (monitor){
 		classifier = DynamicCast<Ipv4FlowClassifier> (flowHelper.GetClassifier ());

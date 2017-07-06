@@ -237,7 +237,7 @@ void CustomBulkApplication::SendData (void)
       InetSocketAddress inetDstAddr = InetSocketAddress::ConvertFrom(this->m_peer);
 
       NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4()  << ") "  <<  (endTime-m_startTime) << " Seconds");
-      *(m_outputFile->GetStream ()) << (endTime-m_startTime) << "\n";
+      *(m_outputFile->GetStream ()) << (endTime-m_startTime) << " " << m_maxBytes << "\n";
 
       //TODO SAVE TIME
     }

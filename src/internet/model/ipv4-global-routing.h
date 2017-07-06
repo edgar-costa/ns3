@@ -54,6 +54,7 @@ typedef enum
 typedef struct{
 	int64_t time;
 	uint32_t out_port;
+	uint64_t packet_count;
 } flowlet_t;
 
 /**

@@ -102,7 +102,7 @@ std::unordered_map <std::string, std::vector<uint16_t>> installSinks(NodeContain
   	for (int i = 0; i < sinksPerHost ; i++){
   		installSink((*host), starting_port+i, duration, protocol);
   		//Add port into the vector
-  		NS_LOG_DEBUG("Install Sink: " << host_name << " port:" << starting_port+i);
+  		//NS_LOG_DEBUG("Install Sink: " << host_name << " port:" << starting_port+i);
     	hostsToPorts[host_name].push_back(starting_port+i);
   	}
 
@@ -118,7 +118,7 @@ std::unordered_map <std::string, std::vector<uint16_t>> installSinks(NodeContain
 //* Stride
 
 void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts,
-		DataRate sendingRate, uint16_t nFlows, uint16_t offset, Ptr<OutputStreamWrapper> fctFile){
+		uint64_t flowSize, uint16_t nFlows, uint16_t offset, Ptr<OutputStreamWrapper> fctFile){
 
 //	uint16_t vector_size = hostsToPorts.begin()->second.size();
 	uint16_t numHosts =  hosts.GetN();
@@ -137,13 +137,15 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 
 			//create sender
 			NS_LOG_DEBUG("Start Sender: src:" << GetNodeName(*host) << " dst:" <<  GetNodeName(dst) << " dport:" << dport);
-			installBulkSend((*host), dst, dport, BytesFromRate(DataRate("10Mbps"), 1),1, fctFile);
+			installBulkSend((*host), dst, dport, flowSize, 1, fctFile);
 			//installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 		}
 		index++;
-		if (index == 1){
+
+		if (index == 16){
 			break;
 		}
+
 	}
 
 }
@@ -305,7 +307,7 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 
 			//Install the application in the host.
 			NS_LOG_DEBUG("Starts flow: src->" << src_name << " dst->" << dst_name.str() << " size->" <<flowSize << " startTime->"<<startTime);
-			//installBulkSend(src, dst, dport, flowSize, startTime, fctFile);
+			installBulkSend(src, dst, dport, flowSize, startTime, fctFile);
 
 		}
 	}

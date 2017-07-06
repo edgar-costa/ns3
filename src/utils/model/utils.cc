@@ -48,7 +48,7 @@ GetNodeIp(std::string node_name)
 uint64_t BytesFromRate(DataRate dataRate, double time){
 
 		double bytes = ((double)dataRate.GetBitRate()/8) * time;
-		NS_LOG_UNCOND("Bytes to send: " << bytes);
+		NS_LOG_DEBUG("Bytes to send: " << bytes);
 		return bytes;
 }
 
@@ -259,6 +259,9 @@ allocateNodesFatTree(int k){
 
 }
 
-
+void printNow(double delay){
+	NS_LOG_UNCOND("\nSimulation Time: " << Simulator::Now().GetSeconds() << "\n");
+	Simulator::Schedule (Seconds(delay), &printNow, delay);
 }
 
+}

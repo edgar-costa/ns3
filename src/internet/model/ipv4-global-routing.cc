@@ -505,9 +505,13 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 								NS_LOG_DEBUG("Flowlet expired in node: " <<  Names::FindName(m_ipv4->GetObject<Node>()));
 								NS_LOG_DEBUG("At " << Simulator::Now().GetSeconds() << " Inter packe gap is :" << (NanoSeconds(now-flowlet_data.time)).GetMilliSeconds());
 
+								//We output the size in packets of the flowlet
+								NS_LOG_DEBUG("FlowletSize: "<< flowlet_data.packet_count << " " << key);
+
 								//Generate a new random port and update flowlet table
 								selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
 								flowlet_data.time = now; flowlet_data.out_port = selectIndex;
+								flowlet_data.packet_count = 0;
 								flowlet_table[key] = flowlet_data;
 
 
@@ -523,6 +527,7 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 								selectIndex = (flowlet_data.out_port % allRoutes.size());
 
 								flowlet_data.time = now;
+								flowlet_data.packet_count++;
 								flowlet_table[key] = flowlet_data;
 							}
 						}
@@ -530,6 +535,7 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 							int64_t now  = Simulator::Now().GetTimeStep();
 							selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
 							flowlet_data.time = now; flowlet_data.out_port = selectIndex;
+							flowlet_data.packet_count = 1;
 							flowlet_table[key] = flowlet_data;
 
 						}
