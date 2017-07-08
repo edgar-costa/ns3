@@ -236,8 +236,13 @@ void CustomBulkApplication::SendData (void)
       std::string srcName = GetNodeName(m_socket->GetNode());
       InetSocketAddress inetDstAddr = InetSocketAddress::ConvertFrom(this->m_peer);
 
-      NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4()  << ") "  <<  (endTime-m_startTime) << " Seconds");
-      *(m_outputFile->GetStream ()) << (endTime-m_startTime) << " " << m_maxBytes << "\n";
+      NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4()  << ") "  <<  (endTime-m_startTime)
+      		<< " Seconds" << " " << "SimulationTime: " << Simulator::Now().GetSeconds());
+
+      //create 5 tuple
+      std::ostringstream fiveTuple;
+
+      *(m_outputFile->GetStream ()) << (endTime-m_startTime) << " " << m_maxBytes << " " << hash_string(fiveTuple.str()) << "\n";
 
       //TODO SAVE TIME
     }

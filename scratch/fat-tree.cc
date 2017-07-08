@@ -111,7 +111,15 @@ main (int argc, char *argv[])
   bool monitor = false;
   bool debug = false;
 
+  //error model
+  std::string errorLink = "r_0_a0->r_c0";
+  double errorRate = 0;
+
   CommandLine cmd;
+
+  //Error model
+  cmd.AddValue("ErrorLink", "Link that will suffer error", errorLink);
+  cmd.AddValue("ErrorRate", "Rate of drop per packet", errorRate);
 
   //Misc
   cmd.AddValue("Animation", "Enable animation module" , animation);
@@ -165,9 +173,9 @@ main (int argc, char *argv[])
   double packetDelay = double(1500*8)/DataRate(linkBandiwdth).GetBitRate();
 	rtt = 12*delay + (12*Seconds(packetDelay).GetMilliSeconds());
 
-	minRTO = rtt*1.5;
+	minRTO = rtt*2;
 
-  flowlet_gap = rtt/2; //milliseconds
+  flowlet_gap = rtt; //milliseconds
 
   //Routing
   Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
@@ -413,8 +421,6 @@ main (int argc, char *argv[])
   }
 
 
-
-
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
 //
@@ -431,17 +437,17 @@ main (int argc, char *argv[])
 
   Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameRoot+".fct");
 
-  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 20), 1, k, flowsCompletionTime);
+//  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 20), 1, k, flowsCompletionTime);
 
 //  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
 //  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
 //
 //  installBulkSend(GetNode("h_0_1"), GetNode("h_1_1"), hostToPort["h_1_1"][1], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
-//  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10),1.1, flowsCompletionTime);
-//  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1.2, flowsCompletionTime);
+//  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
+//  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
 //
 
-//  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
+  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
 
 
   //////////////////
@@ -479,11 +485,23 @@ main (int argc, char *argv[])
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c2"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c3"].Get(0), bool(1));
 
-  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
-  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
-  csma.EnablePcap(outputNameRoot, links["h_0_2->r_0_e1"].Get(0), bool(1));
-  csma.EnablePcap(outputNameRoot, links["h_0_3->r_0_e1"].Get(0), bool(1));
 
+
+//  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["h_0_2->r_0_e1"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameRoot, links["h_0_3->r_0_e1"].Get(0), bool(1));
+
+  //Install Error model
+  if (errorRate > 0){
+		Ptr<RateErrorModel> em = CreateObject<RateErrorModel> ();
+		em->SetAttribute ("ErrorRate", DoubleValue (errorRate));
+		em->SetAttribute ("ErrorUnit", EnumValue(RateErrorModel::ERROR_UNIT_PACKET));
+
+		links[errorLink].Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
+		links[errorLink].Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
+
+  }
 
   //Allocate nodes in a fat tree shape
 	allocateNodesFatTree(k);
@@ -529,7 +547,7 @@ main (int argc, char *argv[])
   	flowMonitor = flowHelper.InstallAll ();
   }
 
-  //Simulator::Schedule(Seconds(1), &printNow, 1);
+  Simulator::Schedule(Seconds(1), &printNow, 1);
 
   Simulator::Stop (Seconds (80));
   Simulator::Run ();

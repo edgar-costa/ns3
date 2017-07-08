@@ -52,6 +52,13 @@ uint64_t BytesFromRate(DataRate dataRate, double time){
 		return bytes;
 }
 
+uint64_t hash_string(std::string message){
+  Hasher hasher;
+  hasher.clear();
+  return hasher.GetHash64(message);
+
+}
+
 std::vector< std::pair<double,uint64_t>> GetDistribution(std::string distributionFile) {
 
   std::vector< std::pair<double,uint64_t>> cumulativeDistribution;
