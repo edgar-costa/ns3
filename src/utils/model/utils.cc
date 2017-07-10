@@ -90,9 +90,21 @@ uint64_t GetFlowSizeFromDistribution(std::vector< std::pair<double,uint64_t>> di
 
   uint64_t size =  1500; //at least 1 packet
 
+  uint64_t previous_size = 0;
+  double previous_prob = 0.0;
+
   for (uint32_t i=0; i < distribution.size(); i++){
   	if (uniformSample <= distribution[i].first){
-  		size = distribution[i].second;
+
+  		//compute the proportional size depending on the position
+  		if (i > 0){
+  			previous_size = distribution[i-1].second;
+  			previous_prob = distribution[i-1].first;
+  		}
+  		double relative_distance = (uniformSample - previous_prob)/(distribution[i].first - previous_prob);
+  		NS_LOG_UNCOND(relative_distance << " " << uniformSample << " " << previous_prob << " " << distribution[i].first << " " << previous_size);
+  		size = previous_size + (relative_distance * (distribution[i].second - previous_size));
+
   		break;
   	}
   }

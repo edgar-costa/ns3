@@ -141,13 +141,7 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 			//installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 		}
 		index++;
-
-		if (index == 16){
-			break;
-		}
-
 	}
-
 }
 
 //* Random: receiver is always in a different pod
@@ -208,6 +202,10 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 	double sameNetProb = 1- interPodProb - intraPodProb;
 	std::vector< std::pair<double,uint64_t>> sizeDistribution = GetDistribution(distributionFile);
 
+
+
+
+
 	//Prepare distributions
 	//Uniform distribution to select flows size
 	std::random_device rd0;  //Will be used to obtain a seed for the random number engine
@@ -218,9 +216,6 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 	std::random_device rd;  //Will be used to obtain a seed for the random number engine
   std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
   std::uniform_real_distribution<double> uniformDistributionHosts(0.0,1.0);
-
-
-
 
   uint64_t flowSize;
 
