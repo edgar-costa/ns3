@@ -242,6 +242,7 @@ void CustomBulkApplication::SendData (void)
       //create 5 tuple
       std::ostringstream fiveTuple;
 
+
       *(m_outputFile->GetStream ()) << (endTime-m_startTime) << " " << m_maxBytes << " " << hash_string(fiveTuple.str()) << "\n";
 
       //TODO SAVE TIME
