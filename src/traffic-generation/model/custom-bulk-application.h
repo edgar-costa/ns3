@@ -128,6 +128,7 @@ private:
   uint64_t        m_totBytes;     //!< Total bytes sent so far
   TypeId          m_tid;          //!< The type of protocol to use.
   double 					m_startTime;    //!<Starting sending time
+  uint64_t        m_flowId;       //!<Id to identificate flows with other runs
 
   Ptr<OutputStreamWrapper> m_outputFile;
 

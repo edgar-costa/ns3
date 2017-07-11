@@ -547,9 +547,9 @@ main (int argc, char *argv[])
   	flowMonitor = flowHelper.InstallAll ();
   }
 
-  Simulator::Schedule(Seconds(1), &printNow, 0.5);
+  //Simulator::Schedule(Seconds(1), &printNow, 0.5);
 
-  Simulator::Stop (Seconds (100));
+  Simulator::Stop (Seconds (300));
   Simulator::Run ();
 
 

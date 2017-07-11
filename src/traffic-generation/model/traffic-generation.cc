@@ -61,7 +61,8 @@ Ptr<Socket> installSimpleSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t sin
 }
 
 //DO THE SAME WITH THE BULK APP, WHICH IS PROBABLY WHAT WE WANT TO HAVE.
-Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport, uint64_t size, double startTime, Ptr<OutputStreamWrapper> fctFile){
+Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport, uint64_t size, double startTime,
+		Ptr<OutputStreamWrapper> fctFile, uint64_t flowId){
 
   Ipv4Address addr = GetNodeIp(dstHost);
   Address sinkAddress (InetSocketAddress (addr, dport));
@@ -72,7 +73,10 @@ Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport
   bulkSender->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
   bulkSender->SetAttribute("MaxBytes", UintegerValue(size));
   bulkSender->SetAttribute("Remote", AddressValue(sinkAddress));
+  bulkSender->SetAttribute("FlowId", UintegerValue(flowId));
+
   bulkSender->SetOutputFile(fctFile);
+
 
   //Install app
   srcHost->AddApplication(bulkSender);
@@ -124,6 +128,7 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 	uint16_t numHosts =  hosts.GetN();
 
 	uint16_t index = 0;
+	uint64_t flowId = 0;
 	for (NodeContainer::Iterator host = hosts.Begin(); host != hosts.End(); host++){
 
 		//Get receiver
@@ -137,7 +142,8 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 
 			//create sender
 			NS_LOG_DEBUG("Start Sender: src:" << GetNodeName(*host) << " dst:" <<  GetNodeName(dst) << " dport:" << dport);
-			installBulkSend((*host), dst, dport, flowSize, 1, fctFile);
+			installBulkSend((*host), dst, dport, flowSize, 1, fctFile, flowId);
+			flowId++;
 			//installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 		}
 		index++;
@@ -155,6 +161,7 @@ void startRandom(NodeContainer hosts, std::unordered_map <std::string, std::vect
 		uint16_t hostsPerPod = ((k/2) * (k/2));
 
 		uint16_t index = 0;
+		uint64_t flowId = 0;
 		for (NodeContainer::Iterator host = hosts.Begin(); host != hosts.End(); host++){
 
 			//index of the source pod
@@ -178,7 +185,8 @@ void startRandom(NodeContainer hosts, std::unordered_map <std::string, std::vect
 
 				//create sender
 				NS_LOG_DEBUG("Start Sender: src:" << GetNodeName(*host) << " dst:" <<  GetNodeName(dst) << " dport:" << dport);
-				installBulkSend((*host), dst, dport, BytesFromRate(DataRate("10Mbps"), 10),1, fctFile);
+				installBulkSend((*host), dst, dport, BytesFromRate(DataRate("10Mbps"), 10),1, fctFile, flowId);
+				flowId++;
 				//installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 			}
 		}
@@ -219,6 +227,7 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 
   uint64_t flowSize;
 
+  uint64_t flowId = 0;
 
 	for (NodeContainer::Iterator host = hosts.Begin(); host != hosts.End(); host++){
 
@@ -302,7 +311,8 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 
 			//Install the application in the host.
 //			NS_LOG_DEBUG("Starts flow: src->" << src_name << " dst->" << dst_name.str() << " size->" <<flowSize << " startTime->"<<startTime);
-			installBulkSend(src, dst, dport, flowSize, startTime, fctFile);
+			installBulkSend(src, dst, dport, flowSize, startTime, fctFile, flowId);
+			flowId++;
 
 		}
 	}

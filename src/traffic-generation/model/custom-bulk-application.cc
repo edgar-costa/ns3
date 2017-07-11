@@ -61,6 +61,12 @@ CustomBulkApplication::GetTypeId (void)
                    UintegerValue (0),
                    MakeUintegerAccessor (&CustomBulkApplication::m_maxBytes),
                    MakeUintegerChecker<uint64_t> ())
+		.AddAttribute ("FlowId",
+		               "Flow id "
+		               "Once these bytes are sent",
+			             UintegerValue (0),
+			             MakeUintegerAccessor (&CustomBulkApplication::m_flowId),
+			             MakeUintegerChecker<uint64_t> ())
     .AddAttribute ("Protocol", "The type of protocol to use.",
                    TypeIdValue (TcpSocketFactory::GetTypeId ()),
                    MakeTypeIdAccessor (&CustomBulkApplication::m_tid),
@@ -77,7 +83,8 @@ CustomBulkApplication::CustomBulkApplication ()
   : m_socket (0),
     m_connected (false),
     m_totBytes (0),
-		m_startTime(0)
+		m_startTime(0),
+		m_flowId(0)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -241,14 +248,16 @@ void CustomBulkApplication::SendData (void)
       		<< " Seconds" << " " << "SimulationTime: " << Simulator::Now().GetSeconds() << " " << "Flow Size: " << m_maxBytes);
 
       //create 5 tuple
-      std::ostringstream fiveTuple;
+      std::ostringstream flowIdentification;
 
-      fiveTuple << ipv4AddressToString(srcAddr) << ":" << inetDstAddr.GetIpv4() << ":"
-      		<< inetDstAddr.GetPort() << ":" << 6;
-//      Ipv4EndPoint * t = DynamicCast<TcpSocketBase>(m_socket)->GetEndPoint();
-//      t->GetLocalPort();
+      flowIdentification << ipv4AddressToString(srcAddr) << "_" << inetDstAddr.GetIpv4() << "_" << m_flowId;
 
-      *(m_outputFile->GetStream ()) << (endTime-m_startTime) << " " << m_maxBytes << " " << fiveTuple.str() << "\n";
+//     Ipv4EndPoint * t = (DynamicCast<TcpSocketBase>(m_socket))->GetEndPoint();
+//     t->GetLocalPort();
+
+      *(m_outputFile->GetStream ()) << flowIdentification.str() << " " << m_maxBytes << " "
+      		<< (endTime-m_startTime) << " " << m_startTime << " " << endTime << "\n";
+
       (m_outputFile->GetStream())->flush();
 
     }
