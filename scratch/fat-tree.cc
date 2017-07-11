@@ -96,7 +96,7 @@ main (int argc, char *argv[])
   double interPodProb = 1;
   std::string sizeDistributionFile = "distributions/default.txt";
 
-  uint64_t delay = 0.5;  //milliseconds
+  uint64_t delay = 50;  //milliseconds
 
 	//12 because there the packet crosses 12 interfaces every RTT. Should also add the time it takes to send 1 packet to the network.
   // my estimated RTT
@@ -171,19 +171,23 @@ main (int argc, char *argv[])
   //General default configurations
   //putting 1500bytes into the wire
   double packetDelay = double(1500*8)/DataRate(linkBandiwdth).GetBitRate();
-	rtt = 12*delay + (12*Seconds(packetDelay).GetMilliSeconds());
+	rtt = 12*delay + (12*Seconds(packetDelay).GetMicroSeconds());
+
+	packetDelay = double(58*8)/DataRate(linkBandiwdth).GetBitRate();
+	int small_rtt = 12*delay + (12*Seconds(packetDelay).GetMicroSeconds());
 
 	minRTO = rtt*2;
 
-  flowlet_gap = rtt; //milliseconds
+  flowlet_gap = rtt/2; //milliseconds
 
   //Routing
   Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
   Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
-  Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", IntegerValue(MilliSeconds(flowlet_gap).GetNanoSeconds()));
+  Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", IntegerValue(MicroSeconds(flowlet_gap).GetNanoSeconds()));
 
   //TCP
-
+  NS_LOG_UNCOND("rtt: " << rtt << " minRTO: " << minRTO << " flowlet_gap: " << flowlet_gap
+  		<< " delay: " << delay << " packetDelay: " << Seconds(packetDelay).GetMicroSeconds() << "small_rtt: "<< small_rtt << " Microseconds");
 
 //  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
 //  Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
@@ -191,21 +195,24 @@ main (int argc, char *argv[])
 	Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (TcpNewReno::GetTypeId ()));
 	Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(rtt)));
 
-	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MilliSeconds (minRTO))); //min RTO value that can be set
+	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MicroSeconds(minRTO))); //min RTO value that can be set
 	Config::SetDefault ("ns3::TcpSocketBase::MaxSegLifetime",DoubleValue(120));
-  Config::SetDefault ("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3)); //same than DupAckThreshold
-  Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue(MicroSeconds(100)));
+  Config::SetDefault ("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(10)); //same than DupAckThreshold
+  Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue(MicroSeconds(5)));
 
 	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1446)); //MTU
 	Config::SetDefault ("ns3::TcpSocket::DataRetries", UintegerValue (10)); //retranmissions
 	Config::SetDefault ("ns3::TcpSocket::ConnCount",UintegerValue(10)); //retrnamissions during connection
+	//Can be much slower than my rtt because packet size of syn is 60bytes
+	Config::SetDefault ("ns3::TcpSocket::ConnTimeout",TimeValue(MicroSeconds(4*small_rtt))); // connection retransmission timeout
+
 
 	Config::SetDefault ("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(2*rtt)));
 	Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue(2));
 
 	Config::SetDefault ("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(4294967295));
 	Config::SetDefault ("ns3::TcpSocket::InitialCwnd", UintegerValue(1));
-	Config::SetDefault ("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
+	Config::SetDefault ("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); //disable nagle's algorithm
 
 
 
@@ -229,7 +236,7 @@ main (int argc, char *argv[])
 
 //   create point-to-point link from A to R
   csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (linkBandiwdth)));
-  csma.SetChannelAttribute ("Delay", TimeValue (MilliSeconds(delay)));
+  csma.SetChannelAttribute ("Delay", TimeValue (MicroSeconds(delay)));
   csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
 
   csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(queue_size));
@@ -433,7 +440,7 @@ main (int argc, char *argv[])
 
 
 //  //Prepare sink app
-  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 50, 10000 , protocol);
+  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 2000, 1000 , protocol);
 
   Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameRoot+".fct");
 
@@ -484,6 +491,8 @@ main (int argc, char *argv[])
 //  csma.EnablePcap(outputNameRoot, links["r_0_a0->r_c1"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c2"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c3"].Get(0), bool(1));
+
+//  	csma.EnablePcapAll("outputs/pcap_out", true);
 
 
 
