@@ -196,7 +196,7 @@ void startRandom(NodeContainer hosts, std::unordered_map <std::string, std::vect
 //Using distributions...
 
 void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts,
-		uint16_t k, Ptr<OutputStreamWrapper> fctFile, std::string distributionFile, uint32_t interArrivalFlow, double intraPodProb, double interPodProb, double simulationTime){
+		uint16_t k, Ptr<OutputStreamWrapper> fctFile, std::string distributionFile,uint32_t seed, uint32_t interArrivalFlow, double intraPodProb, double interPodProb, double simulationTime){
 
 	NS_ASSERT_MSG(interArrivalFlow >= hosts.GetN(), "Inter arrival flows has to be at least 1 flow per unit");
 
@@ -218,11 +218,13 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 	//Uniform distribution to select flows size
 	std::random_device rd0;  //Will be used to obtain a seed for the random number engine
   std::mt19937 gen0(rd0()); //Standard mersenne_twister_engine seeded with rd()
+  gen0.seed(seed);
   std::uniform_real_distribution<double> uniformDistributionSize(0.0,1.0);
 
 	//Uniform distribution to select flows size
 	std::random_device rd;  //Will be used to obtain a seed for the random number engine
   std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+  gen.seed(seed*2);
   std::uniform_real_distribution<double> uniformDistributionHosts(0.0,1.0);
 
   uint64_t flowSize;
@@ -237,6 +239,7 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 	  //Exponential distribution to select flow inter arrival time per sender
 	  std::random_device rd2;  //Will be used to obtain a seed for the random number engine
 	  std::mt19937 gen2(rd2()); //Standard mersenne_twister_engine seeded with rd()
+	  gen2.seed(seed*3);
 	  std::exponential_distribution<double> interArrivalTime(interArrivalFlow/hosts.GetN());
 
 		Ptr<Node> src = *host;
@@ -307,10 +310,11 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 
 			//get flow size and starting time
 			flowSize = GetFlowSizeFromDistribution(sizeDistribution, uniformDistributionSize(gen0));
+
 			startTime += interArrivalTime(gen2);
 
 			//Install the application in the host.
-//			NS_LOG_DEBUG("Starts flow: src->" << src_name << " dst->" << dst_name.str() << " size->" <<flowSize << " startTime->"<<startTime);
+			NS_LOG_DEBUG("Starts flow: src->" << src_name << " dst->" << dst_name.str() << " size->" <<flowSize << " startTime->"<<startTime);
 			installBulkSend(src, dst, dport, flowSize, startTime, fctFile, flowId);
 			flowId++;
 
