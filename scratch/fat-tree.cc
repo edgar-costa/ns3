@@ -549,7 +549,7 @@ main (int argc, char *argv[])
 
   Simulator::Schedule(Seconds(1), &printNow, 0.5);
 
-  Simulator::Stop (Seconds (150));
+  Simulator::Stop (Seconds (100));
   Simulator::Run ();
 
 

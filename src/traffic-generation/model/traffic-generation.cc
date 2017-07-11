@@ -301,7 +301,7 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 			startTime += interArrivalTime(gen2);
 
 			//Install the application in the host.
-			NS_LOG_DEBUG("Starts flow: src->" << src_name << " dst->" << dst_name.str() << " size->" <<flowSize << " startTime->"<<startTime);
+//			NS_LOG_DEBUG("Starts flow: src->" << src_name << " dst->" << dst_name.str() << " size->" <<flowSize << " startTime->"<<startTime);
 			installBulkSend(src, dst, dport, flowSize, startTime, fctFile);
 
 		}
