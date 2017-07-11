@@ -66,10 +66,10 @@ std::vector< std::pair<double,uint64_t>> GetDistribution(std::string distributio
 
   NS_ASSERT_MSG(infile, "Please provide a valid file for reading the flow size distribution!");
   double cumulativeProbability;
-  int size;
+  double size;
   while (infile >> size >> cumulativeProbability)
   {
-    cumulativeDistribution.push_back(std::make_pair(cumulativeProbability, size));
+    cumulativeDistribution.push_back(std::make_pair(cumulativeProbability, int(size)));
   }
 
 //  for(uint32_t i = 0; i < cumulativeDistribution.size(); i++)
@@ -88,26 +88,34 @@ uint64_t GetFlowSizeFromDistribution(std::vector< std::pair<double,uint64_t>> di
 
   NS_ASSERT_MSG(uniformSample <= 1.0, "Provided sampled number is bigger than 1.0!");
 
-  uint64_t size =  1500; //at least 1 packet
+  uint64_t size =  50; //at least 1 packet
 
   uint64_t previous_size = 0;
   double previous_prob = 0.0;
 
-  for (uint32_t i=0; i < distribution.size(); i++){
-  	if (uniformSample <= distribution[i].first){
+  for (uint32_t i= 0; i < distribution.size(); i++){
+//  	NS_LOG_UNCOND(uniformSample << " " << distribution[i].first);
 
+  	if (uniformSample <= distribution[i].first){
   		//compute the proportional size depending on the position
   		if (i > 0){
   			previous_size = distribution[i-1].second;
   			previous_prob = distribution[i-1].first;
   		}
   		double relative_distance = (uniformSample - previous_prob)/(distribution[i].first - previous_prob);
-  		NS_LOG_UNCOND(relative_distance << " " << uniformSample << " " << previous_prob << " " << distribution[i].first << " " << previous_size);
+//  		NS_LOG_UNCOND(relative_distance << " " << uniformSample << " " << previous_prob << " " << distribution[i].first << " " << previous_size);
   		size = previous_size + (relative_distance * (distribution[i].second - previous_size));
 
   		break;
   	}
   }
+
+  //avoid setting a size of 0
+  //set packet size to 50 at least..
+  if (size == 0){
+  	size = 50;
+  }
+
   return size;
 }
 

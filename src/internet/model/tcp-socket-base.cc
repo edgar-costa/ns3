@@ -499,6 +499,11 @@ TcpSocketBase::GetErrno (void) const
   return m_errno;
 }
 
+Ipv4EndPoint*
+TcpSocketBase::GetEndPoint(void){
+	return m_endPoint;
+}
+
 /* Inherit from Socket class: Returns socket type, NS3_SOCK_STREAM */
 enum Socket::SocketType
 TcpSocketBase::GetSocketType (void) const

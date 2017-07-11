@@ -269,6 +269,8 @@ public:
 class TcpSocketBase : public TcpSocket
 {
 public:
+
+
   /**
    * Get the type ID.
    * \brief Get the type ID.
@@ -421,6 +423,7 @@ public:
    */
   void SetCongestionControlAlgorithm (Ptr<TcpCongestionOps> algo);
 
+  Ipv4EndPoint* GetEndPoint(void);
   // Necessary implementations of null functions from ns3::Socket
   virtual enum SocketErrno GetErrno (void) const;    // returns m_errno
   virtual enum SocketType GetSocketType (void) const; // returns socket type

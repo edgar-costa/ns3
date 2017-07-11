@@ -234,16 +234,22 @@ void CustomBulkApplication::SendData (void)
       double endTime  = Simulator::Now().GetSeconds();
 
       std::string srcName = GetNodeName(m_socket->GetNode());
+      Ipv4Address srcAddr = GetNodeIp(m_socket->GetNode());
       InetSocketAddress inetDstAddr = InetSocketAddress::ConvertFrom(this->m_peer);
 
       NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4()  << ") "  <<  (endTime-m_startTime)
-      		<< " Seconds" << " " << "SimulationTime: " << Simulator::Now().GetSeconds());
+      		<< " Seconds" << " " << "SimulationTime: " << Simulator::Now().GetSeconds() << " " << "Flow Size: " << m_maxBytes);
 
       //create 5 tuple
       std::ostringstream fiveTuple;
 
+      fiveTuple << ipv4AddressToString(srcAddr) << ":" << inetDstAddr.GetIpv4() << ":"
+      		<< inetDstAddr.GetPort() << ":" << 6;
+//      Ipv4EndPoint * t = DynamicCast<TcpSocketBase>(m_socket)->GetEndPoint();
+//      t->GetLocalPort();
 
-      *(m_outputFile->GetStream ()) << (endTime-m_startTime) << " " << m_maxBytes << " " << hash_string(fiveTuple.str()) << "\n";
+      *(m_outputFile->GetStream ()) << (endTime-m_startTime) << " " << m_maxBytes << " " << fiveTuple.str() << "\n";
+      (m_outputFile->GetStream())->flush();
 
     }
 }

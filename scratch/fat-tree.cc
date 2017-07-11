@@ -439,15 +439,15 @@ main (int argc, char *argv[])
 
 //  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 20), 1, k, flowsCompletionTime);
 
-  	installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("1Gbps"),1),1, flowsCompletionTime);
-//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),10),1);
+//  	installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("1Gbps"),1),1, flowsCompletionTime);
+//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),1),1, flowsCompletionTime);
 //
 //  installBulkSend(GetNode("h_0_1"), GetNode("h_1_1"), hostToPort["h_1_1"][1], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
 //  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
 //  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
 //
 
-//  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
+  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
 
 
   //////////////////
@@ -547,7 +547,7 @@ main (int argc, char *argv[])
   	flowMonitor = flowHelper.InstallAll ();
   }
 
-  Simulator::Schedule(Seconds(1), &printNow, 0.05);
+  Simulator::Schedule(Seconds(1), &printNow, 0.5);
 
   Simulator::Stop (Seconds (150));
   Simulator::Run ();
