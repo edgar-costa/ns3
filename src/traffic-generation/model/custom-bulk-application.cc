@@ -244,13 +244,13 @@ void CustomBulkApplication::SendData (void)
       Ipv4Address srcAddr = GetNodeIp(m_socket->GetNode());
       InetSocketAddress inetDstAddr = InetSocketAddress::ConvertFrom(this->m_peer);
 
-      NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4() << ":" << inetDstAddr.GetPort()  << ") "  <<  (endTime-m_startTime)
+      NS_LOG_DEBUG("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4() << ":" << inetDstAddr.GetPort()  << ") "  <<  (endTime-m_startTime)
       		<< " Seconds" << " " << "SimulationTime: " << Simulator::Now().GetSeconds() << " " << "Flow Size: " << m_maxBytes);
 
       //create 5 tuple
       std::ostringstream flowIdentification;
 
-      flowIdentification << ipv4AddressToString(srcAddr) << "_" << inetDstAddr.GetIpv4() << "_" << m_flowId;
+      flowIdentification << ipv4AddressToString(srcAddr) << "_" << inetDstAddr.GetIpv4() << ":" << inetDstAddr.GetPort() << "_" << m_flowId;
 
 //     Ipv4EndPoint * t = (DynamicCast<TcpSocketBase>(m_socket))->GetEndPoint();
 //     t->GetLocalPort();
@@ -262,6 +262,8 @@ void CustomBulkApplication::SendData (void)
 
       if (endTime-m_startTime > 1 and m_maxBytes < 100){
       	NS_LOG_UNCOND("Long Small flow");
+        NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4() << ":" << inetDstAddr.GetPort()  << ") "  <<  (endTime-m_startTime)
+        		<< " Seconds" << " " << "SimulationTime: " << Simulator::Now().GetSeconds() << " " << "Flow Size: " << m_maxBytes);
       }
 
     }

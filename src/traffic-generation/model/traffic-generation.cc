@@ -316,6 +316,7 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 
 		}
 	}
+	std::clog << "Flow Count:" << flowId;
 }
 
 }
