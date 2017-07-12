@@ -1,34 +1,49 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-
+from fct import Fct
 
 if __name__ == "__main__":
+    
+    tests = ["ECMP_RANDOM_FLOWLET", "ECMP_PER_FLOW", "ECMP_RANDOM"]
+    errors = [0, 0.001, 0.01, 0.05, 0.1]
 
-    with open(sys.argv[1], "r") as f:
-        fct = f.readlines()
+    test_seed = sys.argv[1]
 
-    #get flow completion time and convert
-    #convert to float
-    lines = [x.strip().split("  ") for x in fct]
+    root_path = "/home/edgar/ns-allinone-3.26/ns-3.26/outputs/"
+    root_name = "fat-tree-{0}_{1}_{2}.fct"
 
-    print lines
 
-    fct = [float(x[0]) for x in lines]
-    ##comulative_prob = [float(x[1]) for x in lines]
+    plt.figure(1)
+    color = ["r--", "g--", "b--", "y--", "k--"]
+    i =1
+    for test in tests:
+        
+        plt.subplot(310+i)
+        
+        color_i = 0
+        for error in errors:
+            fct_reader = Fct(root_path+root_name.format(test, error, test_seed))
+            fct = fct_reader.get_attribute("fct")
+            
+            fct_sorted = sorted(fct)
+    
+            #log scale
 
-    fct_sorted = sorted(fct)
+            #y axis step
+            y = 1. * np.arange(len(fct))
+            y = [x/(len(fct)-1) for x in y]
 
-    #log scale
+            ##y = comulative_prob[:]
+            
+            plt.plot(fct_sorted, y, color[color_i])
+            plt.xscale('log')
+            color_i +=1
 
-    #y axis step
-    y = 1. * np.arange(len(fct))
-    y = [x/(len(fct)-1) for x in y]
+        i +=1
 
-    ##y = comulative_prob[:]
-
-    plt.plot(fct_sorted, y)
-    plt.xscale('log')
+        
+    plt.savefig("run_"+test_seed)
     plt.show()
     
     

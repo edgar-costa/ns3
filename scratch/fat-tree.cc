@@ -35,7 +35,8 @@
 using namespace ns3;
 
 std::string fileNameRoot = "fat-tree";    // base name for trace files, etc
-std::string outputNameRoot = "outputs/" + fileNameRoot;
+std::string outputNameRoot = "outputs/";
+std::string outputNameFct = "";
 
 NS_LOG_COMPONENT_DEFINE (fileNameRoot);
 
@@ -43,9 +44,6 @@ const char * file_name = g_log.Name();
 std::string script_name = file_name;
 
 int counter = 0;
-
-
-
 
 
 //TRACE SINKS
@@ -87,7 +85,9 @@ main (int argc, char *argv[])
   //Command line arguments
   std::string ecmpMode = "ECMP_NONE";
   std::string protocol = "TCP";
-  std::string experimentName = "default";
+  std::string simulationName = "default";
+  std::string outputFolder = "";
+
   uint16_t queue_size = 100;
   uint64_t runStep = 1;
   double simulationTime = 10;
@@ -127,8 +127,9 @@ main (int argc, char *argv[])
   cmd.AddValue("Debug", "" , debug);
 
   //Naming
-  cmd.AddValue("ExperimentName", "Name of the experiment: " , experimentName);
-
+  cmd.AddValue("SimulationName", "Name of the experiment: " , simulationName);
+  cmd.AddValue("OutputFolder", "Set it to something if you want to store the simulation output "
+  		"in a particular folder inside outputs", outputFolder);
 
   cmd.AddValue("Protocol", "Protocol used by the traffic Default is: "+protocol , protocol);
 
@@ -166,7 +167,10 @@ main (int argc, char *argv[])
 	std::ostringstream run;
 	run << runStep;
 
-  outputNameRoot = outputNameRoot + "-" + experimentName + "_" +  std::string(run.str());
+  outputNameRoot = outputNameRoot + outputFolder + "/" + fileNameRoot;
+  outputNameFct = outputNameRoot + "-" +  simulationName + "_" +  std::string(run.str()) + ".fct";
+
+  NS_LOG_UNCOND(outputNameRoot << " " <<  outputNameFct <<  " " << simulationName);
 
   //General default configurations
   //putting 1500bytes into the wire
@@ -442,7 +446,7 @@ main (int argc, char *argv[])
 //  //Prepare sink app
   std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 2000, 1000 , protocol);
 
-  Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameRoot+".fct");
+  Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameFct);
 
 //  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 20), 1, k, flowsCompletionTime);
 
@@ -454,7 +458,10 @@ main (int argc, char *argv[])
 //  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
 //
 
-  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep,
+  NodeContainer tmp_hosts;
+  tmp_hosts.Add("h_0_0");
+
+  sendFromDistribution(tmp_hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep,
   		interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
 
 
@@ -488,19 +495,17 @@ main (int argc, char *argv[])
   //links["h_0_1->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_1"));
 
 //
-//  csma.EnablePcap(outputNameRoot, links["r_0_a0->r_c0"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["r_0_a0->r_c1"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c2"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c3"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["r_0_a0->r_c0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["r_0_a0->r_c1"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["r_0_a1->r_c2"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["r_0_a1->r_c3"].Get(0), bool(1));
 
-//  	csma.EnablePcapAll("outputs/pcap_out", true);
+//  	csma.EnablePcapAll(outputNameRoot, true);
 
-
-
-//  csma.EnablePcap(outputNameRoot, links["h_0_0->r_0_e0"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["h_0_1->r_0_e0"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["h_0_2->r_0_e1"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameRoot, links["h_0_3->r_0_e1"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["h_0_0->r_0_e0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["h_0_1->r_0_e0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["h_0_2->r_0_e1"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["h_0_3->r_0_e1"].Get(0), bool(1));
 
   //Install Error model
   if (errorRate > 0){
@@ -510,38 +515,37 @@ main (int argc, char *argv[])
 
 		links[errorLink].Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 		links[errorLink].Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
-
   }
 
   //Allocate nodes in a fat tree shape
-	allocateNodesFatTree(k);
-	AnimationInterface anim(outputNameRoot+".anim");
-  if (animation){
-		//Animation
-		//AnimationInterface anim(outputNameRoot+".anim");
-		anim.SetMaxPktsPerTraceFile(10000000);
-
-	//  setting colors
-		for (uint32_t i = 0; i < hosts.GetN(); i++){
-					Ptr<Node> host = hosts.Get(i);
-					anim.UpdateNodeColor(host, 0, 0, 255);
-					anim.UpdateNodeSize(host->GetId(), 0.5, 0.5);
-
-		}
-		for (uint32_t i = 0; i < edgeRouters.GetN(); i++)
-		{
-					anim.UpdateNodeColor(edgeRouters.Get(i), 0, 200, 0);
-					anim.UpdateNodeColor(aggRouters.Get(i), 0, 200, 0);
-		}
-
-		for (uint32_t i = 0; i < coreRouters.GetN(); i++)
-					anim.UpdateNodeColor(coreRouters.Get(i), 255, 0, 0);
-
-		anim.EnablePacketMetadata(true);
-  }
-  else{
-  	anim.SetStopTime(Seconds(0));
-  }
+//	allocateNodesFatTree(k);
+//	AnimationInterface anim(outputNameRoot+".anim");
+//  if (animation){
+//		//Animation
+//		//AnimationInterface anim(outputNameRoot+".anim");
+//		anim.SetMaxPktsPerTraceFile(10000000);
+//
+//	//  setting colors
+//		for (uint32_t i = 0; i < hosts.GetN(); i++){
+//					Ptr<Node> host = hosts.Get(i);
+//					anim.UpdateNodeColor(host, 0, 0, 255);
+//					anim.UpdateNodeSize(host->GetId(), 0.5, 0.5);
+//
+//		}
+//		for (uint32_t i = 0; i < edgeRouters.GetN(); i++)
+//		{
+//					anim.UpdateNodeColor(edgeRouters.Get(i), 0, 200, 0);
+//					anim.UpdateNodeColor(aggRouters.Get(i), 0, 200, 0);
+//		}
+//
+//		for (uint32_t i = 0; i < coreRouters.GetN(); i++)
+//					anim.UpdateNodeColor(coreRouters.Get(i), 255, 0, 0);
+//
+//		anim.EnablePacketMetadata(true);
+//  }
+//  else{
+//  	anim.SetStopTime(Seconds(0));
+//  }
 
   ////////////////////
   //Flow Monitor
@@ -569,7 +573,7 @@ main (int argc, char *argv[])
 		stats = flowMonitor->GetFlowStats ();
 
 		//File where we write FCT
-		Ptr<OutputStreamWrapper> fct = asciiTraceHelper.CreateFileStream (outputNameRoot+".fct");
+		Ptr<OutputStreamWrapper> fct = asciiTraceHelper.CreateFileStream (outputNameRoot + ".monitor");
 
 		for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i){
 
