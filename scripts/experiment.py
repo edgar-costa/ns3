@@ -11,4 +11,4 @@ cmd = 'time ./waf --run "fat-tree --LinkBandwidth=10Mbps  --Delay=50 --QueueSize
 for test in tests:
     for error in errors:
         subprocess.call(cmd.format(error, test), shell=True)
-        time.sleep(8)
+        time.sleep(10)
