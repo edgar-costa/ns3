@@ -307,7 +307,6 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 
 			//get flow size and starting time
 			flowSize = GetFlowSizeFromDistribution(sizeDistribution, uniformDistributionSize(gen0));
-
 			startTime += interArrivalTime(gen2);
 
 			//Install the application in the host.
