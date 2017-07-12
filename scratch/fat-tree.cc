@@ -454,7 +454,8 @@ main (int argc, char *argv[])
 //  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
 //
 
-  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
+  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep,
+  		interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
 
 
   //////////////////
@@ -492,7 +493,7 @@ main (int argc, char *argv[])
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c2"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c3"].Get(0), bool(1));
 
-  	csma.EnablePcapAll("outputs/pcap_out", true);
+//  	csma.EnablePcapAll("outputs/pcap_out", true);
 
 
 

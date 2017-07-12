@@ -27,7 +27,7 @@ void startRandom(NodeContainer hosts, std::unordered_map <std::string, std::vect
 		DataRate sendingRate, uint16_t flowsPerHost, uint16_t k, Ptr<OutputStreamWrapper> fctFile);
 
 void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, std::vector<uint16_t>> hostsToPorts,
-		uint16_t k, Ptr<OutputStreamWrapper> fctFile, std::string distributionFile, uint32_t interArrivalFlow, double sameNetProb, double interPodProb, double simulationTime);
+		uint16_t k, Ptr<OutputStreamWrapper> fctFile, std::string distributionFile,uint32_t seed, uint32_t interArrivalFlow, double sameNetProb, double interPodProb, double simulationTime);
 
 }
 
