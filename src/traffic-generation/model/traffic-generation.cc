@@ -211,9 +211,6 @@ void sendFromDistribution(NodeContainer hosts, std::unordered_map <std::string, 
 	std::vector< std::pair<double,uint64_t>> sizeDistribution = GetDistribution(distributionFile);
 
 
-
-
-
 	//Prepare distributions
 	//Uniform distribution to select flows size
 	std::random_device rd0;  //Will be used to obtain a seed for the random number engine

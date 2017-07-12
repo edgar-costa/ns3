@@ -493,7 +493,7 @@ main (int argc, char *argv[])
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c2"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameRoot, links["r_0_a1->r_c3"].Get(0), bool(1));
 
-  	csma.EnablePcapAll("outputs/pcap_out", true);
+//  	csma.EnablePcapAll("outputs/pcap_out", true);
 
 
 
