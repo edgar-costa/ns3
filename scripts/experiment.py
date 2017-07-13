@@ -21,7 +21,7 @@ parser.add_argument('-o','--OutputFolder',
 parser.add_argument('-b', '--Bandwidth', help='',default=10)
 parser.add_argument('-t', '--SimulationTime', help='',default=10)
 parser.add_argument('-i', '--InterArrival', help='',default=1600)
-parser.add_argument('-d', '--Distribution', help='', default="distributions/enterprise_conga.csv")
+parser.add_argument('-d', '--Distribution', help='', default="distributions/enterprise_conga_scaled_100.csv")
 
 args = parser.parse_args()
 
