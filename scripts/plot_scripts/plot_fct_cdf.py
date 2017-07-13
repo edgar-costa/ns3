@@ -8,9 +8,13 @@ if __name__ == "__main__":
     tests = ["ECMP_RANDOM_FLOWLET", "ECMP_PER_FLOW", "ECMP_RANDOM"]
     errors = [0, 0.001, 0.01, 0.05, 0.1]
 
-    test_seed = sys.argv[1]
+    test_name = sys.argv[1]
+    if test_name:
+        test_name += "/"
+        
+    test_seed = sys.argv[2]
 
-    root_path = "/home/edgar/ns-allinone-3.26/ns-3.26/outputs/"
+    root_path = "/home/edgar/ns-allinone-3.26/ns-3.26/outputs/{0}".format(test_name)
     root_name = "fat-tree-{0}_{1}_{2}.fct"
 
 
@@ -43,7 +47,7 @@ if __name__ == "__main__":
         i +=1
 
         
-    plt.savefig("run_"+test_seed)
+    plt.savefig("fct_"+test_name)
     plt.show()
     
     

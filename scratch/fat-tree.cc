@@ -458,10 +458,10 @@ main (int argc, char *argv[])
 //  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
 //
 
-  NodeContainer tmp_hosts;
-  tmp_hosts.Add("h_0_0");
+  //NodeContainer tmp_hosts;
+  //tmp_hosts.Add("h_0_0");
 
-  sendFromDistribution(tmp_hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep,
+  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep,
   		interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
 
 
