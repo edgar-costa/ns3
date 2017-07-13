@@ -17,14 +17,14 @@ if __name__ == "__main__":
     root_path = "/home/edgar/ns-allinone-3.26/ns-3.26/outputs/{0}".format(test_name)
     root_name = "fat-tree-{0}_{1}_{2}.fct"
 
-
     plt.figure(1)
     color = ["r--", "g--", "b--", "y--", "k--"]
     i =1
     for test in tests:
         
-        plt.subplot(310+i)
-        
+        ax = plt.subplot(310+i)
+        ax.set_title(test)
+
         color_i = 0
         for error in errors:
             fct_reader = Fct(root_path+root_name.format(test, error, test_seed))
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         i +=1
 
         
-    plt.savefig("fct_"+test_name)
+    plt.savefig("fct_"+test_name.replace("/", ""))
     plt.show()
     
     
