@@ -54,6 +54,7 @@
 
 #include <math.h>
 #include <algorithm>
+#include <iostream>
 
 namespace ns3 {
 
@@ -756,13 +757,15 @@ TcpSocketBase::Close (void)
   /// \internal
   /// First we check to see if there is any unread rx data.
   /// \bugid{426} claims we should send reset in this case.
-  if (m_rxBuffer->Size () != 0)
-    {
-      NS_LOG_WARN ("Socket " << this << " << unread rx data during close.  Sending reset." <<
-                   "This is probably due to a bad sink application; check its code");
-      SendRST ();
-      return 0;
-    }
+//  if (m_rxBuffer->Size () != 0)
+//    {
+//      NS_LOG_WARN ("Socket " << this << " << unread rx data during close.  Sending reset." <<
+//                   "This is probably due to a bad sink application; check its code");
+//
+//      std::cout << "A" << m_endPoint->GetLocalAddress() << std::endl;
+//      SendRST ();
+//      return 0;
+//    }
 
   if (m_txBuffer->SizeFromSequence (m_tcb->m_nextTxSequence) > 0)
     { // App close with pending data must wait until all data transmitted
@@ -1046,6 +1049,7 @@ TcpSocketBase::DoConnect (void)
   else if (m_state != TIME_WAIT)
     { // In states SYN_RCVD, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, and CLOSING, an connection
       // exists. We send RST, tear down everything, and close this socket.
+    	std::cout << "F" << m_endPoint->GetLocalAddress() << std::endl;
       SendRST ();
       CloseAndNotify ();
     }
@@ -1076,6 +1080,7 @@ TcpSocketBase::DoClose (void)
     case SYN_SENT:
     case CLOSING:
       // Send RST if application closes in SYN_SENT and CLOSING
+      std::cout << "G" << m_endPoint->GetLocalAddress() << std::endl;
       SendRST ();
       CloseAndNotify ();
       break;
@@ -1438,6 +1443,7 @@ TcpSocketBase::ProcessEstablished (Ptr<Packet> packet, const TcpHeader& tcpHeade
       if (tcpflags != TcpHeader::RST)
         { // this must be an invalid flag, send reset
           NS_LOG_LOGIC ("Illegal flag " << TcpHeader::FlagsToString (tcpflags) << " received. Reset packet is sent.");
+          std::cout << "T" << m_endPoint->GetLocalAddress() << std::endl;
           SendRST ();
         }
       CloseAndNotify ();
@@ -1816,6 +1822,7 @@ TcpSocketBase::ProcessSynSent (Ptr<Packet> packet, const TcpHeader& tcpHeader)
         { // When (1) rx of FIN+ACK; (2) rx of FIN; (3) rx of bad flags
           NS_LOG_LOGIC ("Illegal flag " << TcpHeader::FlagsToString (tcpflags) <<
                         " received. Reset packet is sent.");
+          std::cout << "DT" << m_endPoint->GetLocalAddress() << std::endl;
           SendRST ();
         }
       CloseAndNotify ();
@@ -1908,6 +1915,7 @@ TcpSocketBase::ProcessSynRcvd (Ptr<Packet> packet, const TcpHeader& tcpHeader,
               m_endPoint6->SetPeer (Inet6SocketAddress::ConvertFrom (fromAddress).GetIpv6 (),
                                     Inet6SocketAddress::ConvertFrom (fromAddress).GetPort ());
             }
+          std::cout << "E" << std::endl;
           SendRST ();
         }
       CloseAndNotify ();
@@ -1955,6 +1963,7 @@ TcpSocketBase::ProcessWait (Ptr<Packet> packet, const TcpHeader& tcpHeader)
         {
           NS_LOG_LOGIC ("Illegal flag " << TcpHeader::FlagsToString (tcpflags) <<
                         " received. Reset packet is sent.");
+          std::cout << "D" << m_endPoint->GetLocalAddress() << std::endl;
           SendRST ();
         }
       CloseAndNotify ();
@@ -2012,6 +2021,7 @@ TcpSocketBase::ProcessClosing (Ptr<Packet> packet, const TcpHeader& tcpHeader)
       else if (tcpflags != TcpHeader::RST)
         { // Receive of SYN or SYN+ACK or bad flags or pure data
           NS_LOG_LOGIC ("Illegal flag " << TcpHeader::FlagsToString (tcpflags) << " received. Reset packet is sent.");
+          std::cout << "C" << m_endPoint->GetLocalAddress() << std::endl;
           SendRST ();
         }
       CloseAndNotify ();
@@ -2049,6 +2059,7 @@ TcpSocketBase::ProcessLastAck (Ptr<Packet> packet, const TcpHeader& tcpHeader)
   else
     { // Received a SYN or SYN+ACK or bad flags
       NS_LOG_LOGIC ("Illegal flag " << TcpHeader::FlagsToString (tcpflags) << " received. Reset packet is sent.");
+      std::cout << "B" << m_endPoint->GetLocalAddress() << std::endl;
       SendRST ();
       CloseAndNotify ();
     }
