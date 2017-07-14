@@ -251,8 +251,8 @@ main (int argc, char *argv[])
   //Here we should set how things are routed at the ipv4global routing module
   //TODO
 
-  //Config::SetDefault("ns3::Ipv4GlobalRouting::RandomEcmpRouting", BooleanValue("True"));
-  Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
+  Config::SetDefault("ns3::Ipv4GlobalRouting::RandomEcmpRouting", BooleanValue("True"));
+//  Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
 //  Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1446));
 //  Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
   Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
@@ -391,7 +391,7 @@ main (int argc, char *argv[])
   Address sinkAddress (InetSocketAddress (addr, sinkPort));
 
   Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3Socket, sinkAddress, 1440, 10000, DataRate ("10Gbps"));
+  app->Setup (ns3Socket, sinkAddress, 1440, 10000, DataRate ("10Mbps"));
   nodes.Get (0)->AddApplication (app);
   app->SetStartTime (Seconds (1.));
   app->SetStopTime (Seconds (1000.));

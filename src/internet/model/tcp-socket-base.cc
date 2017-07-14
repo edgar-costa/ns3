@@ -754,15 +754,18 @@ int
 TcpSocketBase::Close (void)
 {
   NS_LOG_FUNCTION (this);
-  /// \internal
-  /// First we check to see if there is any unread rx data.
-  /// \bugid{426} claims we should send reset in this case.
+
+//  / \internal
+//  / First we check to see if there is any unread rx data.
+//  / \bugid{426} claims we should send reset in this case.
 //  if (m_rxBuffer->Size () != 0)
 //    {
 //      NS_LOG_WARN ("Socket " << this << " << unread rx data during close.  Sending reset." <<
 //                   "This is probably due to a bad sink application; check its code");
 //
-//      std::cout << "A" << m_endPoint->GetLocalAddress() << std::endl;
+//      std::cout << "A " << m_endPoint->GetLocalAddress() << " " << m_endPoint->GetLocalPort()
+//      		<< " " << m_endPoint->GetPeerAddress() << " " << m_endPoint->GetPeerPort()
+//      		<< std::endl;
 //      SendRST ();
 //      return 0;
 //    }

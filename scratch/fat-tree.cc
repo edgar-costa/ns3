@@ -139,6 +139,7 @@ main (int argc, char *argv[])
   double intraPodProb = 0;
   double interPodProb = 1;
   std::string sizeDistributionFile = "distributions/default.txt";
+  std::string trafficPattern = "distribution";
 
   uint64_t delay = 50;  //milliseconds
 
@@ -193,6 +194,7 @@ main (int argc, char *argv[])
   cmd.AddValue("FlowletGap", "Inter-arrival packet time for flowlet expiration", flowlet_gap);
   cmd.AddValue("K", "Fat tree size", k);
   cmd.AddValue("RunStep", "Random generator starts at", runStep);
+  cmd.AddValue("TrafficPattern","stride or distribution", trafficPattern);
 
   cmd.Parse (argc, argv);
 
@@ -501,10 +503,14 @@ main (int argc, char *argv[])
 
   //NodeContainer tmp_hosts;
   //tmp_hosts.Add("h_0_0");
+//
 
-  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep,
-  		interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
-
+  if (trafficPattern == "distribution"){
+  	sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
+  }
+  else if( trafficPattern == "stride"){
+	  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 5), 1, 4,flowsCompletionTime);
+  }
 
   //////////////////
   //TRACES

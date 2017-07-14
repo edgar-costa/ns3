@@ -147,6 +147,9 @@ void startStride(NodeContainer hosts, std::unordered_map <std::string, std::vect
 			//installSimpleSend((*host), dst,	dport, sendingRate, 100, "TCP");
 		}
 		index++;
+	if (index == 4){
+		break;
+	}
 	}
 }
 
