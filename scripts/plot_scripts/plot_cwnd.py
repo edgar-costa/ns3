@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import sys, math
+from parser import Parser
 
 def stdin_to_lines():
     lines = [x for x in sys.stdin]
@@ -27,10 +28,12 @@ def plot_cwnd(time, cwnd,fig_name):
 
 if __name__ == "__main__":
     
-    
-    time, cwnd = split_lines(stdin_to_lines())
+    parser = Parser(sys.argv[1], {'time':0, 'cwnd':1}, " ")
 
-    plot_cwnd(time,cwnd,sys.argv[1])
+    time = parser.get_attribute('time')
+    cwnd = parser.get_attribute('cwnd')
+
+    plot_cwnd(time,cwnd,sys.argv[2])
 
 
 

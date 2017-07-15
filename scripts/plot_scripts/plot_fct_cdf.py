@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-from fct import Fct
+from parser import Parser
 
 if __name__ == "__main__":
     
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
         color_i = 0
         for error in errors:
-            fct_reader = Fct(root_path+root_name.format(test, error, test_seed))
+            fct_reader = Parser(root_path+root_name.format(test, error, test_seed))
             fct = fct_reader.get_attribute("fct")
             
             fct_sorted = sorted(fct)
