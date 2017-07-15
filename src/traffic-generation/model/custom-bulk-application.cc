@@ -235,6 +235,8 @@ void CustomBulkApplication::SendData (void)
 
 //    	uint32_t availableBuffer = m_socket->GetTxAvailable();
 
+  		m_socket->ShutdownSend();
+
 			m_socket->Close ();
       m_connected = false;
 

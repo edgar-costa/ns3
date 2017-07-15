@@ -56,10 +56,54 @@ CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
 }
 
 static void
-RxDrop (Ptr<PcapFileWrapper> file, Ptr<const Packet> p)
+RxDropPcap (Ptr<PcapFileWrapper> file, Ptr<const Packet> packet)
 {
+//	Ptr<PcapFileWrapper> file OLD VERSION
   //NS_LOG_UNCOND ("RxDrop at " << Simulator::Now ().GetSeconds ());
-  file->Write (Simulator::Now (), p);
+
+  file->Write (Simulator::Now (), packet);
+}
+
+static void
+RxDropAscii (Ptr<OutputStreamWrapper> file, Ptr<const Packet> packet)
+{
+//	Ptr<PcapFileWrapper> file OLD VERSION
+  //NS_LOG_UNCOND ("RxDrop at " << Simulator::Now ().GetSeconds ());
+
+	Ptr<Packet> p = packet->Copy();
+
+	PppHeader ppp_header;
+	p->RemoveHeader(ppp_header);
+
+	Ipv4Header ip_header;
+	p->RemoveHeader(ip_header);
+
+
+  std::ostringstream oss;
+  oss << Simulator::Now().GetSeconds() << " "
+  		<< ip_header.GetSource() << " "
+      << ip_header.GetDestination() << " "
+      << int(ip_header.GetProtocol()) << " ";
+
+	if (ip_header.GetProtocol() == uint8_t(17)){ //udp
+    UdpHeader udpHeader;
+    p->PeekHeader(udpHeader);
+    oss << int(udpHeader.GetSourcePort()) << " "
+        << int(udpHeader.GetDestinationPort()) << " ";
+
+	}
+	else if (ip_header.GetProtocol() == uint8_t(6)) {//tcp
+    TcpHeader tcpHeader;
+    p->PeekHeader(tcpHeader);
+    oss << int(tcpHeader.GetSourcePort()) << " "
+        << int(tcpHeader.GetDestinationPort()) << " ";
+	}
+
+	oss << packet->GetSize() << "\n";
+	*(file->GetStream()) << oss.str();
+  (file->GetStream())->flush();
+
+//  file->Write (Simulator::Now (), p);
 }
 
 static void
@@ -95,6 +139,7 @@ main (int argc, char *argv[])
   double intraPodProb = 0;
   double interPodProb = 1;
   std::string sizeDistributionFile = "distributions/default.txt";
+  std::string trafficPattern = "distribution";
 
   uint64_t delay = 50;  //milliseconds
 
@@ -149,6 +194,7 @@ main (int argc, char *argv[])
   cmd.AddValue("FlowletGap", "Inter-arrival packet time for flowlet expiration", flowlet_gap);
   cmd.AddValue("K", "Fat tree size", k);
   cmd.AddValue("RunStep", "Random generator starts at", runStep);
+  cmd.AddValue("TrafficPattern","stride or distribution", trafficPattern);
 
   cmd.Parse (argc, argv);
 
@@ -431,6 +477,13 @@ main (int argc, char *argv[])
   	ipToNode[ipv4AddressToString(GetNodeIp(host))] = host;
   }
 
+  //Store in a file ip -> node name
+  Ptr<OutputStreamWrapper> ipToName_file = asciiTraceHelper.CreateFileStream (outputNameRoot+"-ipToName");
+  for (auto it = ipToNode.begin();  it != ipToNode.end(); it++){
+  	*(ipToName_file->GetStream()) << it->first << " " << GetNodeName(it->second) << "\n";
+  }
+  ipToName_file->GetStream()->flush();
+
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
@@ -448,22 +501,16 @@ main (int argc, char *argv[])
 
   Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameFct);
 
-//  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 20), 1, k, flowsCompletionTime);
-
-//  	installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("1Gbps"),1),1, flowsCompletionTime);
-//  installBulkSend(GetNode("h_0_0"), GetNode("h_1_0"), hostToPort["h_1_0"][0], BytesFromRate(DataRate("10Mbps"),1),1, flowsCompletionTime);
-//
-//  installBulkSend(GetNode("h_0_1"), GetNode("h_1_1"), hostToPort["h_1_1"][1], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
-//  installBulkSend(GetNode("h_0_2"), GetNode("h_1_2"), hostToPort["h_1_2"][2], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
-//  installBulkSend(GetNode("h_0_3"), GetNode("h_1_3"), hostToPort["h_1_3"][3], BytesFromRate(DataRate("10Mbps"),10),1, flowsCompletionTime);
-//
-
   //NodeContainer tmp_hosts;
   //tmp_hosts.Add("h_0_0");
+//
 
-  sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep,
-  		interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
-
+  if (trafficPattern == "distribution"){
+  	sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
+  }
+  else if( trafficPattern == "stride"){
+	  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 5), 1, 4,flowsCompletionTime);
+  }
 
   //////////////////
   //TRACES
@@ -498,11 +545,12 @@ main (int argc, char *argv[])
 //  csma.EnablePcap(outputNameFct, links["r_0_a0->r_c0"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameFct, links["r_0_a0->r_c1"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameFct, links["r_0_a1->r_c2"].Get(0), bool(1));
-//  csma.EnablePcap(outputNameFct, links["r_0_a1->r_c3"].Get(0), bool(1));
 
 //  	csma.EnablePcapAll(outputNameRoot, true);
 
-//  csma.EnablePcap(outputNameFct, links["h_0_0->r_0_e0"].Get(0), bool(1));
+  csma.EnablePcap(outputNameFct, links["h_0_0->r_0_e0"].Get(0), bool(1));
+  csma.EnablePcap(outputNameFct, links["h_3_1->r_3_e0"].Get(0), bool(1));
+
 //  csma.EnablePcap(outputNameFct, links["h_0_1->r_0_e0"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameFct, links["h_0_2->r_0_e1"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameFct, links["h_0_3->r_0_e1"].Get(0), bool(1));
@@ -515,7 +563,21 @@ main (int argc, char *argv[])
 
 		links[errorLink].Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 		links[errorLink].Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
+
+		PcapHelper pcapHelper;
+		Ptr<PcapFileWrapper> drop_pcap = pcapHelper.CreateFile (outputNameRoot+"-drops.pcap", std::ios::out, PcapHelper::DLT_PPP);
+
+		Ptr<OutputStreamWrapper> drop_ascii = asciiTraceHelper.CreateFileStream (outputNameRoot+"-drops");
+
+		links[errorLink].Get (0)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropAscii, drop_ascii));
+		links[errorLink].Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropAscii, drop_ascii));
+
+		links[errorLink].Get (0)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropPcap, drop_pcap));
+		links[errorLink].Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropPcap, drop_pcap));
+
   }
+
+
 
   //Allocate nodes in a fat tree shape
 //	allocateNodesFatTree(k);
