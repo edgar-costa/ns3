@@ -69,6 +69,9 @@ Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport
 
   Ptr<CustomBulkApplication> bulkSender = CreateObject<CustomBulkApplication>();
 
+  Ptr<Socket> socket;
+  socket = Socket::CreateSocket (srcHost, TcpSocketFactory::GetTypeId ());
+  bulkSender->SetSocket(socket);
 
   bulkSender->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
   bulkSender->SetAttribute("MaxBytes", UintegerValue(size));
@@ -84,8 +87,7 @@ Ptr<Socket> installBulkSend(Ptr<Node> srcHost, Ptr<Node> dstHost, uint16_t dport
   bulkSender->SetStartTime(Seconds(startTime));
   bulkSender->SetStopTime(Seconds(1000));
 
-
-  return bulkSender->GetSocket();
+  return socket;
 }
 
 

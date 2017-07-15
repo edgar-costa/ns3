@@ -100,9 +100,13 @@ public:
    */
   Ptr<Socket> GetSocket (void) const;
 
+  void SetSocket(Ptr<Socket> s);
+
+
   /**
    * \brief Get the size of the sockets tx buffer
    * \return Current size
+   *
    */
   uint32_t GetTxBufferSize(void);
 
@@ -129,6 +133,7 @@ private:
   TypeId          m_tid;          //!< The type of protocol to use.
   double 					m_startTime;    //!<Starting sending time
   uint64_t        m_flowId;       //!<Id to identificate flows with other runs
+  bool 						m_started;
 
   Ptr<OutputStreamWrapper> m_outputFile;
 

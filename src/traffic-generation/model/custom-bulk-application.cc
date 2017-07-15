@@ -38,6 +38,7 @@ NS_LOG_COMPONENT_DEFINE ("CustomBulkApplication");
 
 NS_OBJECT_ENSURE_REGISTERED (CustomBulkApplication);
 
+
 TypeId
 CustomBulkApplication::GetTypeId (void)
 {
@@ -84,7 +85,8 @@ CustomBulkApplication::CustomBulkApplication ()
     m_connected (false),
     m_totBytes (0),
 		m_startTime(0),
-		m_flowId(0)
+		m_flowId(0),
+		m_started(false)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -128,6 +130,11 @@ void CustomBulkApplication::SetOutputFile(Ptr<OutputStreamWrapper> file){
 	m_outputFile = file;
 }
 
+void CustomBulkApplication::SetSocket(Ptr<Socket> s){
+	NS_LOG_FUNCTION(this);
+	m_socket = s;
+}
+
 
 // Application Methods
 void CustomBulkApplication::StartApplication (void) // Called at time specified by Start
@@ -135,9 +142,10 @@ void CustomBulkApplication::StartApplication (void) // Called at time specified 
   NS_LOG_FUNCTION (this);
 
   // Create the socket if not already
-  if (!m_socket)
+  if (!m_started)//(!m_socket)
     {
-      m_socket = Socket::CreateSocket (GetNode (), m_tid);
+  		m_started=true;
+//      m_socket = Socket::CreateSocket (GetNode (), m_tid);
 
       // Fatal error if socket type is not NS3_SOCK_STREAM or NS3_SOCK_SEQPACKET
       if (m_socket->GetSocketType () != Socket::NS3_SOCK_STREAM &&
@@ -235,7 +243,7 @@ void CustomBulkApplication::SendData (void)
 
 //    	uint32_t availableBuffer = m_socket->GetTxAvailable();
 
-  		m_socket->ShutdownSend();
+  		//m_socket->ShutdownSend();
 
 			m_socket->Close ();
       m_connected = false;
