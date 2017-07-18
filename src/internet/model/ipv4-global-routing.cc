@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <iomanip>
+#include <algorithm>
 #include "ns3/names.h"
 #include "ns3/log.h"
 #include "ns3/simulator.h"
@@ -40,6 +41,7 @@
 #include "ns3/integer.h"
 #include "ns3/pointer.h"
 #include "ns3/queue.h"
+#include "ns3/utils.h"
 
 
 namespace ns3 {
@@ -567,6 +569,7 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 						break;
 
 					case ECMP_RANDOM_FLOWLET:
+
 						selectIndex = 0;
 						uint16_t key;
 						key = GetFlowHash(header, ipPayload);
@@ -620,17 +623,45 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 						break;
 
 					case ECMP_DRILL:
+					{
 						selectIndex = 0;
 
 						uint32_t numNextHops = allRoutes.size();
-						Ipv4Address dstAddr = header.GetDestination();
-						std::vector previousBestOuts = m_drill_table[dstAddr];
+						std::string dstAddr = ipv4AddressToString(header.GetDestination());
 
-						//If never explored that output.
-						if (previousBestOuts.empty()){
+						std::unordered_set<uint32_t> previousBestOuts = m_drill_table[dstAddr];
 
+//						min (next hop interfaces, drillPicks)
+						uint16_t num_random_picks = std::min(m_drillRandomChecks+m_drillMemoryUnits, numNextHops);
+
+//						If never explored that output.
+						uint32_t sample;
+						while (previousBestOuts.size < num_random_picks){
+							//a bit ineficient but ok
+							sample = random_variable->GetInteger(0, numNextHops-1);
+							previousBestOuts.insert(sample);
 						}
-						else{
+
+						std::vector<std::pair<uint32_t, uint32_t>> q_size_to_index;
+						//here we should get the queues for every index
+						for (auto it = previousBestOuts.begin(); it != previousBestOuts.end(); it++){
+							q_size_to_index.push_back(std::make_pair(GetQueueSize(allRoutes, *it), *it));
+						}
+
+						//Sort Vector
+						std::sort(q_size_to_index.begin(), q_size_to_index.end());
+
+						//Get Final output port
+						selectIndex = q_size_to_index[0].second;
+
+						//Store drillMemory best units to the memory map
+						previousBestOuts.clear();
+						for (uint32_t i= 0; i < m_drillMemoryUnits; i++){
+							previousBestOuts.insert(q_size_to_index[i].second);
+						}
+
+						//Update m_drill_table
+						m_drill_table[dstAddr] = previousBestOuts;
 
 						}
 
@@ -643,10 +674,10 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 					}
       	}
 
-				uint32_t size = GetQueueSize(allRoutes, selectIndex);
-				if (size > 0 ){
-					NS_LOG_UNCOND("Chosen Queue Size: " << size );
-				}
+//				uint32_t size = GetQueueSize(allRoutes, selectIndex);
+//				if (size > 0 ){
+//					NS_LOG_UNCOND("Chosen Queue Size: " << size );
+//				}
 
       Ipv4RoutingTableEntry* route = allRoutes.at (selectIndex);
       // create a Ipv4Route object from the selected routing table entry

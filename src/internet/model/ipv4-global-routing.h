@@ -22,6 +22,7 @@
 
 #include <list>
 #include <unordered_map>
+#include <unordered_set>
 #include <stdint.h>
 #include "ns3/ipv4-address.h"
 #include "ns3/ipv4-header.h"
@@ -271,9 +272,9 @@ private:
   std::unordered_map<uint16_t, flowlet_t> m_flowlet_table;
 
   //Drill LB
-  uint16_t m_drillRandomChecks;
-  uint16_t m_drillMemoryUnits;
-  std::unordered_map<Ipv4Address, std::vector<uint32_t>> m_drill_table;
+  uint32_t m_drillRandomChecks;
+  uint32_t m_drillMemoryUnits;
+  std::unordered_map<std::string, std::unordered_set<uint32_t>> m_drill_table;
 
 
 
