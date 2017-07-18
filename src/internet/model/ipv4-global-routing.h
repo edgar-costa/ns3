@@ -246,7 +246,10 @@ public:
 
   //Added functions
   uint64_t GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPayload);
+  std::string GetFlowTuple(const Ipv4Header &header, Ptr<const Packet> ipPayload);
   uint32_t GetNextInterface(uint32_t);
+  uint32_t GetQueueSize(std::vector<Ipv4RoutingTableEntry*> allRoutes, uint32_t selectIndex );
+
 
 protected:
   void DoDispose (void);
@@ -260,12 +263,19 @@ private:
   Ptr<UniformRandomVariable> m_rand;
   uint32_t m_seed;
 
-  //added edgar
+  //ECMP and flowlet switching
   uint32_t m_lastInterfaceUsed;
   EcmpMode_t m_ecmpMode;
   int64_t m_flowletGap; //in nanoseconds in theory...
 
-  std::unordered_map<uint16_t, flowlet_t> flowlet_table;
+  std::unordered_map<uint16_t, flowlet_t> m_flowlet_table;
+
+  //Drill LB
+  uint16_t m_drillRandomChecks;
+  uint16_t m_drillMemoryUnits;
+  std::unordered_map<Ipv4Address, std::vector<uint32_t>> m_drill_table;
+
+
 
   /// container of Ipv4RoutingTableEntry (routes to hosts)
   typedef std::list<Ipv4RoutingTableEntry *> HostRoutes;

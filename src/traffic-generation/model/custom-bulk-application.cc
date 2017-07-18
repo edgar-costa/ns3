@@ -34,7 +34,7 @@
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("CustomBulkApplication");
+NS_LOG_COMPONENT_DEFINE ("custom-bulk-app");
 
 NS_OBJECT_ENSURE_REGISTERED (CustomBulkApplication);
 
@@ -47,7 +47,7 @@ CustomBulkApplication::GetTypeId (void)
     .SetGroupName("Applications") 
     .AddConstructor<CustomBulkApplication> ()
     .AddAttribute ("SendSize", "The amount of data to send each time.",
-                   UintegerValue (512),
+                   UintegerValue (1024),
                    MakeUintegerAccessor (&CustomBulkApplication::m_sendSize),
                    MakeUintegerChecker<uint32_t> (1))
     .AddAttribute ("Remote", "The address of the destination",

@@ -38,6 +38,8 @@
 #include "ns3/enum.h"
 #include "ns3/uinteger.h"
 #include "ns3/integer.h"
+#include "ns3/pointer.h"
+#include "ns3/queue.h"
 
 
 namespace ns3 {
@@ -83,6 +85,19 @@ Ipv4GlobalRouting::GetTypeId (void)
 									IntegerValue(50000000),
 									MakeIntegerAccessor(&Ipv4GlobalRouting::m_flowletGap),
 									MakeIntegerChecker<int64_t>())
+
+		.AddAttribute("DrillRandomChecks",
+ 	  		          "How many random interfaces are checked",
+									UintegerValue(2),
+									MakeIntegerAccessor(&Ipv4GlobalRouting::m_drillRandomChecks),
+									MakeUintegerChecker<uint16_t>())
+
+		.AddAttribute("DrillMemoryUnits",
+				          "Store the best n previously obseved ports",
+		   						UintegerValue(1),
+									MakeIntegerAccessor(&Ipv4GlobalRouting::m_drillMemoryUnits),
+									MakeUintegerChecker<uint16_t>())
+
   ;
   return tid;
 }
@@ -92,9 +107,9 @@ Ipv4GlobalRouting::Ipv4GlobalRouting ()
     m_respondToInterfaceEvents (false),
 		m_lastInterfaceUsed(0),
 		m_ecmpMode(ECMP_NONE),
-    m_flowletGap(50000000)
-		//TODO
-		// add flowlet tablew
+    m_flowletGap(50000000),
+		m_drillMemoryUnits(1),
+		m_drillRandomChecks(2)
 
 {
   NS_LOG_FUNCTION (this);
@@ -247,6 +262,50 @@ Ipv4GlobalRouting::GetFlowHash(const Ipv4Header &header, Ptr<const Packet> ipPay
   return hash;
 }
 
+std::string
+Ipv4GlobalRouting::GetFlowTuple(const Ipv4Header &header, Ptr<const Packet> ipPayload)
+{
+  NS_LOG_FUNCTION(header);
+
+  std::ostringstream tuple;
+
+  switch (header.GetProtocol())
+    {
+  case UDP_PROT_NUMBER:
+    {
+      UdpHeader udpHeader;
+      ipPayload->PeekHeader(udpHeader);
+
+      tuple << header.GetSource() << ":" << udpHeader.GetSourcePort()
+      		<< ":" << header.GetDestination() << ":" << udpHeader.GetDestinationPort()
+					<< ":" << header.GetProtocol();
+
+      break;
+    }
+  case TCP_PROT_NUMBER:
+    {
+      TcpHeader tcpHeader;
+      ipPayload->PeekHeader(tcpHeader);
+
+      tuple << header.GetSource() << ":" << tcpHeader.GetSourcePort()
+      		<< ":" << header.GetDestination() << ":" << tcpHeader.GetDestinationPort()
+					<< ":" << header.GetProtocol();
+
+      break;
+    }
+  default:
+    {
+    	//TODO maybe this brings us problems with other protcols no?
+    	//What about not even doing this... we can hash using just src,dst,proto, id
+      NS_FATAL_ERROR("Udp or Tcp header not found " << (int) header.GetProtocol());
+      break;
+    }
+    }
+
+  return tuple.str();
+}
+
+
 //TODO review this function I think we should not iterate over all Ninterfaces, but over all possible next hops.
 uint32_t
 Ipv4GlobalRouting::GetNextInterface(uint32_t m_lastInterfaceUsed)
@@ -257,6 +316,22 @@ Ipv4GlobalRouting::GetNextInterface(uint32_t m_lastInterfaceUsed)
   if (nextInterface == 0)
     nextInterface++;
   return nextInterface;
+}
+
+uint32_t Ipv4GlobalRouting::GetQueueSize(std::vector<Ipv4RoutingTableEntry*> allRoutes, uint32_t selectIndex ){
+
+  Ipv4RoutingTableEntry* route_i = allRoutes.at (selectIndex);
+  uint32_t interfaceIndex = route_i->GetInterface ();
+
+  Ptr<NetDevice> device = m_ipv4->GetNetDevice (interfaceIndex);
+
+  PointerValue p2p_queue;
+  device->GetAttribute("TxQueue", p2p_queue);
+  Ptr<Queue> txQueue = p2p_queue.Get<Queue>();
+
+
+  uint32_t currentSize = txQueue->GetNPackets();
+  return currentSize;
 }
 
 
@@ -475,7 +550,10 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 						break;
 
 					case ECMP_PER_FLOW:
-						selectIndex = (GetFlowHash(header, ipPayload) % (allRoutes.size()));
+						{
+							selectIndex = (GetFlowHash(header, ipPayload) % (allRoutes.size()));
+
+						}
 						break;
 
 					case ECMP_RR:
@@ -490,13 +568,12 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 
 					case ECMP_RANDOM_FLOWLET:
 						selectIndex = 0;
-
 						uint16_t key;
 						key = GetFlowHash(header, ipPayload);
 						flowlet_t flowlet_data;
 
-						if (flowlet_table.count(key) > 0){ //already existing entry
-							flowlet_data = flowlet_table[key];
+						if (m_flowlet_table.count(key) > 0){ //already existing entry
+							flowlet_data = m_flowlet_table[key];
 
 							//check if the packet gap is bigger than threshold. In that case select a new random port.
 							int64_t now  = Simulator::Now().GetTimeStep();
@@ -506,13 +583,13 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 								NS_LOG_DEBUG("At " << Simulator::Now().GetSeconds() << " Inter packe gap is :" << (NanoSeconds(now-flowlet_data.time)).GetMilliSeconds());
 
 								//We output the size in packets of the flowlet
-								NS_LOG_DEBUG("FlowletSize: "<< flowlet_data.packet_count << " " << key);
+								NS_LOG_DEBUG("flowletSize: "<< flowlet_data.packet_count << " " << GetFlowTuple(header, ipPayload));
 
 								//Generate a new random port and update flowlet table
 								selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
 								flowlet_data.time = now; flowlet_data.out_port = selectIndex;
-								flowlet_data.packet_count = 0;
-								flowlet_table[key] = flowlet_data;
+								flowlet_data.packet_count = 1;
+								m_flowlet_table[key] = flowlet_data;
 
 
 
@@ -528,7 +605,7 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 
 								flowlet_data.time = now;
 								flowlet_data.packet_count++;
-								flowlet_table[key] = flowlet_data;
+								m_flowlet_table[key] = flowlet_data;
 							}
 						}
 						else { //new entry
@@ -536,7 +613,7 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 							selectIndex = m_rand->GetInteger (0, allRoutes.size ()-1);
 							flowlet_data.time = now; flowlet_data.out_port = selectIndex;
 							flowlet_data.packet_count = 1;
-							flowlet_table[key] = flowlet_data;
+							m_flowlet_table[key] = flowlet_data;
 
 						}
 
@@ -544,6 +621,20 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 
 					case ECMP_DRILL:
 						selectIndex = 0;
+
+						uint32_t numNextHops = allRoutes.size();
+						Ipv4Address dstAddr = header.GetDestination();
+						std::vector previousBestOuts = m_drill_table[dstAddr];
+
+						//If never explored that output.
+						if (previousBestOuts.empty()){
+
+						}
+						else{
+
+						}
+
+
 						break;
 
 					default:
@@ -552,10 +643,20 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 					}
       	}
 
+				uint32_t size = GetQueueSize(allRoutes, selectIndex);
+				if (size > 0 ){
+					NS_LOG_UNCOND("Chosen Queue Size: " << size );
+				}
+
       Ipv4RoutingTableEntry* route = allRoutes.at (selectIndex);
       // create a Ipv4Route object from the selected routing table entry
       rtentry = Create<Ipv4Route> ();
       rtentry->SetDestination (route->GetDest ());
+
+//      NS_LOG_UNCOND(*route);
+//      NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " " <<  route->GetDestNetwork()
+//      		<< " " << route->GetDest() << " " << selectIndex << " " << allRoutes.size());
+
       /// \todo handle multi-address case
       rtentry->SetSource (m_ipv4->GetAddress (route->GetInterface (), 0).GetLocal ());
       rtentry->SetGateway (route->GetGateway ());
