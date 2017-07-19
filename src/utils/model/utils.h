@@ -10,6 +10,8 @@
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
+#include "ns3/point-to-point-module.h"
+
 
 
 namespace ns3 {
@@ -32,6 +34,9 @@ uint64_t GetFlowSizeFromDistribution(std::vector< std::pair<double,uint64_t>> di
 std::pair<uint16_t, uint16_t> GetHostPositionPair(std::string name);
 void printNow(double delay);
 uint64_t hash_string(std::string message);
+void MeasureInterfaceLoad(Ptr<Queue> q, uint32_t previous_counter, double next_schedule, std::string name);
+void MeasureInOutLoad(std::unordered_map<std::string, NetDeviceContainer> links, uint32_t k , double next_schedule){
+
 
 template <typename T>
 T randomFromVector(std::vector<T> & vect){

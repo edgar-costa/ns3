@@ -286,6 +286,49 @@ allocateNodesFatTree(int k){
 
 }
 
+void MeasureInOutLoad(std::unordered_map<std::string, NetDeviceContainer> links, uint32_t k , double next_schedule){
+
+	std::stringstream host_name;
+	std::stringstream router_name;
+
+	for (uint32_t pod = 0; pod < k; pod++){
+		for (uint32_t edge_i = 0; edge_i < k/2; edge_i++){
+			for (uint32_t host_i = 0; host_i < k/2; host_i++){
+
+				uint32_t real_host_i = host_i + (edge_i * k/2);
+
+				host_name << "h_" << pod << "_" << real_host_i;
+				router_name << "r_" << pod << "_e" << edge_i;
+
+				NetDeviceContainer interface = links[host_name.str() + "->" + router_name.str()];
+
+				//Get Device queues TODO: if we add RED queues.... this will not work....
+				Ptr<Queue> queue_rx = DynamicCast<PointToPointNetDevice>(interface.Get(0))->GetQueue();
+				Ptr<Queue> queue_tx = DynamicCast<PointToPointNetDevice>(interface.Get(1))->GetQueue();
+				MeasureInterfaceLoad(queue_rx, 0, next_schedule, host_name.str() + "_rx");
+				MeasureInterfaceLoad(queue_tx, 0, next_schedule, host_name.str() + "_tx");
+
+				host_name.str("");
+				router_name.str("");
+			}
+		}
+	}
+}
+
+void MeasureInterfaceLoad(Ptr<Queue> q, uint32_t previous_counter, double next_schedule, std::string name){
+
+	uint32_t current_counter = q->GetTotalReceivedBytes();
+
+	uint32_t difference = current_counter - previous_counter;
+
+//	NS_LOG_UNCOND(name <<  " " <<  double(difference)/BytesFromRate(DataRate("10Mbps"), next_schedule));
+
+	Simulator::Schedule(Seconds(next_schedule), &MeasureInterfaceLoad, q, current_counter, next_schedule, name);
+}
+
+
+
+
 void printNow(double delay){
 	NS_LOG_UNCOND("\nSimulation Time: " << Simulator::Now().GetSeconds() << "\n");
 	Simulator::Schedule (Seconds(delay), &printNow, delay);
