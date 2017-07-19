@@ -272,8 +272,8 @@ private:
   std::unordered_map<uint16_t, flowlet_t> m_flowlet_table;
 
   //Drill LB
-  uint32_t m_drillRandomChecks;
   uint32_t m_drillMemoryUnits;
+  uint32_t m_drillRandomChecks;
   std::unordered_map<std::string, std::unordered_set<uint32_t>> m_drill_table;
 
 

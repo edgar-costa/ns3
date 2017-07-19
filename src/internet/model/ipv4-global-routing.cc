@@ -280,7 +280,7 @@ Ipv4GlobalRouting::GetFlowTuple(const Ipv4Header &header, Ptr<const Packet> ipPa
 
       tuple << header.GetSource() << ":" << udpHeader.GetSourcePort()
       		<< ":" << header.GetDestination() << ":" << udpHeader.GetDestinationPort()
-					<< ":" << header.GetProtocol();
+					<< ":" << uint32_t(header.GetProtocol());
 
       break;
     }
@@ -291,7 +291,7 @@ Ipv4GlobalRouting::GetFlowTuple(const Ipv4Header &header, Ptr<const Packet> ipPa
 
       tuple << header.GetSource() << ":" << tcpHeader.GetSourcePort()
       		<< ":" << header.GetDestination() << ":" << tcpHeader.GetDestinationPort()
-					<< ":" << header.GetProtocol();
+					<< ":" << uint32_t(header.GetProtocol());
 
       break;
     }
@@ -636,7 +636,7 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 
 //						If never explored that output.
 						uint32_t sample;
-						while (previousBestOuts.size < num_random_picks){
+						while (previousBestOuts.size() < num_random_picks){
 							//a bit ineficient but ok
 							sample = random_variable->GetInteger(0, numNextHops-1);
 							previousBestOuts.insert(sample);
@@ -650,6 +650,13 @@ Ipv4GlobalRouting::LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipP
 
 						//Sort Vector
 						std::sort(q_size_to_index.begin(), q_size_to_index.end());
+
+						//debug
+//						NS_LOG_DEBUG("Start");
+//						for (uint32_t i = 0; i < q_size_to_index.size(); i++){
+//							NS_LOG_DEBUG("Drill Debug: " << q_size_to_index[i].first << " " << q_size_to_index[i].second);
+//						}
+//						NS_LOG_DEBUG("Finish");
 
 						//Get Final output port
 						selectIndex = q_size_to_index[0].second;
