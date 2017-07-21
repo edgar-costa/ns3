@@ -243,9 +243,11 @@ void CustomBulkApplication::SendData (void)
 
 //    	uint32_t availableBuffer = m_socket->GetTxAvailable();
 
-  		//m_socket->ShutdownSend();
+//  	  DynamicCast<TcpSocketBase>(m_socket)->SendRST_c();
 
 			m_socket->Close ();
+
+//  		m_socket->ShutdownSend();
       m_connected = false;
 
       double endTime  = Simulator::Now().GetSeconds();
@@ -275,6 +277,8 @@ void CustomBulkApplication::SendData (void)
         NS_LOG_UNCOND("Flow Duration (" << srcName << " " << inetDstAddr.GetIpv4() << ":" << inetDstAddr.GetPort()  << ") "  <<  (endTime-m_startTime)
         		<< " Seconds" << " " << "SimulationTime: " << Simulator::Now().GetSeconds() << " " << "Flow Size: " << m_maxBytes);
       }
+
+//      Simulator::Stop(Time(0));
 
     }
 }

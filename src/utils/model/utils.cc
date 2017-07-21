@@ -286,6 +286,7 @@ allocateNodesFatTree(int k){
 
 }
 
+//Just works for a fat tree.
 void MeasureInOutLoad(std::unordered_map<std::string, NetDeviceContainer> links, uint32_t k , double next_schedule){
 
 	std::stringstream host_name;
@@ -305,6 +306,7 @@ void MeasureInOutLoad(std::unordered_map<std::string, NetDeviceContainer> links,
 				//Get Device queues TODO: if we add RED queues.... this will not work....
 				Ptr<Queue> queue_rx = DynamicCast<PointToPointNetDevice>(interface.Get(0))->GetQueue();
 				Ptr<Queue> queue_tx = DynamicCast<PointToPointNetDevice>(interface.Get(1))->GetQueue();
+
 				MeasureInterfaceLoad(queue_rx, 0, next_schedule, host_name.str() + "_rx");
 				MeasureInterfaceLoad(queue_tx, 0, next_schedule, host_name.str() + "_tx");
 
@@ -321,7 +323,7 @@ void MeasureInterfaceLoad(Ptr<Queue> q, uint32_t previous_counter, double next_s
 
 	uint32_t difference = current_counter - previous_counter;
 
-//	NS_LOG_UNCOND(name <<  " " <<  double(difference)/BytesFromRate(DataRate("10Mbps"), next_schedule));
+	NS_LOG_UNCOND(name <<  " " <<  double(difference)/BytesFromRate(DataRate("10Mbps"), next_schedule));
 
 	Simulator::Schedule(Seconds(next_schedule), &MeasureInterfaceLoad, q, current_counter, next_schedule, name);
 }

@@ -169,6 +169,10 @@ MyApp::SendPacket (void)
     {
       ScheduleTx ();
     }
+  else{
+  	m_socket->Close();
+  	m_running = false;
+  }
 }
 
 void
@@ -207,20 +211,50 @@ main (int argc, char *argv[])
   CommandLine cmd;
   cmd.Parse (argc, argv);
 
+	//Change that if i want to get different random values each run otherwise i will always get the same.
+	RngSeedManager::SetRun (1);   // Changes run number from default of 1 to 7
+
+	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1446)); //MTU
+	Config::SetDefault ("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(4294967295));
+	Config::SetDefault ("ns3::TcpSocket::InitialCwnd", UintegerValue(1));
+	//Can be much slower than my rtt because packet size of syn is 60bytes
+	Config::SetDefault ("ns3::TcpSocket::ConnTimeout",TimeValue(MicroSeconds(50000))); // connection retransmission timeout
+	Config::SetDefault ("ns3::TcpSocket::ConnCount",UintegerValue(10)); //retrnamissions during connection
+	Config::SetDefault ("ns3::TcpSocket::DataRetries", UintegerValue (10)); //retranmissions
+//	Config::SetDefault ("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(rtt)));
+	Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+	Config::SetDefault ("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); //disable nagle's algorithm
+	Config::SetDefault ("ns3::TcpSocket::PersistTimeout", TimeValue(NanoSeconds(6000000000))); //persist timeout to porbe for rx window
+
+	//Tcp Socket Base: provides connection orientation, sliding window, flow control; congestion control is delegated to the subclasses (i.e new reno)
+
+	Config::SetDefault ("ns3::TcpSocketBase::MaxSegLifetime",DoubleValue(10));
+//	Config::SetDefault ("ns3::TcpSocketBase::Sack", BooleanValue(true)); //enable sack
+	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MicroSeconds(100000))); //min RTO value that can be set
+  Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue(MicroSeconds(1)));
+  Config::SetDefault ("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3)); //same than DupAckThreshold
+
   NodeContainer nodes;
   nodes.Create (2);
 
-  CsmaHelper csma;
+  PointToPointHelper csma;
 
-  csma.SetChannelAttribute("DataRate", StringValue ("1Mbps"));
-  csma.SetChannelAttribute("Delay", StringValue ("1us"));
+  csma.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("10Mbps")));
+  csma.SetChannelAttribute ("Delay", TimeValue (MicroSeconds(50)));
+  csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
+
+  csma.SetQueue("ns3::DropTailQueue", "Mode", EnumValue(DropTailQueue::QUEUE_MODE_PACKETS));
+//  csma.SetQueue("ns3::DropTailQueue", "Mode", EnumValue(DropTailQueue::QUEUE_MODE_BYTES));
+//  csma.SetQueue("ns3::DropTailQueue", "MaxBytes", UintegerValue(queue_size*1500));
+  csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(100));
 
   NetDeviceContainer devices;
   devices = csma.Install (nodes);
 
-  //Ptr<RateErrorModel> em = CreateObject<RateErrorModel> ();
-  //em->SetAttribute ("ErrorRate", DoubleValue (0.00001));
-  //devices.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
+//  Ptr<RateErrorModel> em = CreateObject<RateErrorModel> ();
+//  em->SetAttribute ("ErrorRate", DoubleValue (0));
+//  em->SetAttribute ("ErrorUnit", EnumValue(RateErrorModel::ERROR_UNIT_PACKET));
+//  devices.Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
   InternetStackHelper stack;
   stack.Install (nodes);
@@ -228,6 +262,7 @@ main (int argc, char *argv[])
   Ipv4AddressHelper address;
   address.SetBase ("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
 
   uint16_t sinkPort = 8080;
   Address sinkAddress (InetSocketAddress (interfaces.GetAddress (1), sinkPort));
@@ -239,10 +274,10 @@ main (int argc, char *argv[])
   Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (nodes.Get (0), TcpSocketFactory::GetTypeId ());
 
   Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3TcpSocket, sinkAddress, 1500, 1000, DataRate ("1Mbps"));
+  app->Setup (ns3TcpSocket, sinkAddress, 1000, 10, DataRate ("1Mbps"));
   nodes.Get (0)->AddApplication (app);
   app->SetStartTime (Seconds (1.));
-  app->SetStopTime (Seconds (20.));
+  app->SetStopTime (Seconds (200.));
 
   AsciiTraceHelper asciiTraceHelper;
   Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream ("outputs/"+script_name+".cwnd");
