@@ -20,6 +20,16 @@ namespace ns3 {
 extern Ptr<UniformRandomVariable> random_variable;
 
 
+struct network_load{
+	double stopThreshold;
+	double *startTime;
+};
+
+struct network_metadata{
+	uint32_t k;
+	DataRate linkBandwidth;
+};
+
 Ipv4Address GetNodeIp(std::string node_name);
 Ipv4Address GetNodeIp(Ptr<Node> node);
 
@@ -33,15 +43,34 @@ std::vector< std::pair<double,uint64_t>> GetDistribution(std::string distributio
 uint64_t GetFlowSizeFromDistribution(std::vector< std::pair<double,uint64_t>> distribution, double uniformSample);
 std::pair<uint16_t, uint16_t> GetHostPositionPair(std::string name);
 void printNow(double delay);
-uint64_t hash_string(std::string message);
-void MeasureInterfaceLoad(Ptr<Queue> q, uint32_t previous_counter, double next_schedule, std::string name);
-void MeasureInOutLoad(std::unordered_map<std::string, NetDeviceContainer> links, uint32_t k , double next_schedule);
+void saveNow(double delay, Ptr<OutputStreamWrapper> file);
 
+uint64_t hash_string(std::string message);
+void MeasureInOutLoad(std::unordered_map<std::string, NetDeviceContainer> links, std::unordered_map<std::string, double> linkToPreviousLoad,
+		network_metadata metadata, double next_schedule, network_load load_data);
+
+double MeasureInterfaceLoad(Ptr<Queue> q,  double next_schedule, std::string name, DataRate linkBandwidth);
+
+// trace sinks
+void
+CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd);
+
+ void
+RxDropPcap (Ptr<PcapFileWrapper> file, Ptr<const Packet> packet);
+
+ void
+RxDropAscii (Ptr<OutputStreamWrapper> file, Ptr<const Packet> packet);
+
+ void
+TxDrop (std::string s, Ptr<const Packet> p);
+
+void PrintQueueSize(Ptr<Queue> q);
 
 template <typename T>
 T randomFromVector(std::vector<T> & vect){
 	return vect[random_variable->GetInteger(0, vect.size() -1 )];
 }
+
 
 }
 

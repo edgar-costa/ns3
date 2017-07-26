@@ -46,72 +46,6 @@ std::string script_name = file_name;
 int counter = 0;
 
 
-//TRACE SINKS
-
-static void
-CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
-{
-//  NS_LOG_UNCOND (Simulator::Now ().GetSeconds () << "\t" << newCwnd);
-  *stream->GetStream () << Simulator::Now ().GetSeconds () << " " << newCwnd << std::endl;
-}
-
-static void
-RxDropPcap (Ptr<PcapFileWrapper> file, Ptr<const Packet> packet)
-{
-//	Ptr<PcapFileWrapper> file OLD VERSION
-  //NS_LOG_UNCOND ("RxDrop at " << Simulator::Now ().GetSeconds ());
-
-  file->Write (Simulator::Now (), packet);
-}
-
-static void
-RxDropAscii (Ptr<OutputStreamWrapper> file, Ptr<const Packet> packet)
-{
-//	Ptr<PcapFileWrapper> file OLD VERSION
-  //NS_LOG_UNCOND ("RxDrop at " << Simulator::Now ().GetSeconds ());
-
-	Ptr<Packet> p = packet->Copy();
-
-	PppHeader ppp_header;
-	p->RemoveHeader(ppp_header);
-
-	Ipv4Header ip_header;
-	p->RemoveHeader(ip_header);
-
-
-  std::ostringstream oss;
-  oss << Simulator::Now().GetSeconds() << " "
-  		<< ip_header.GetSource() << " "
-      << ip_header.GetDestination() << " "
-      << int(ip_header.GetProtocol()) << " ";
-
-	if (ip_header.GetProtocol() == uint8_t(17)){ //udp
-    UdpHeader udpHeader;
-    p->PeekHeader(udpHeader);
-    oss << int(udpHeader.GetSourcePort()) << " "
-        << int(udpHeader.GetDestinationPort()) << " ";
-
-	}
-	else if (ip_header.GetProtocol() == uint8_t(6)) {//tcp
-    TcpHeader tcpHeader;
-    p->PeekHeader(tcpHeader);
-    oss << int(tcpHeader.GetSourcePort()) << " "
-        << int(tcpHeader.GetDestinationPort()) << " ";
-	}
-
-	oss << packet->GetSize() << "\n";
-	*(file->GetStream()) << oss.str();
-  (file->GetStream())->flush();
-
-//  file->Write (Simulator::Now (), p);
-}
-
-static void
-TxDrop (std::string s, Ptr<const Packet> p){
-	static int counter = 0;
-	NS_LOG_UNCOND (counter++ << " " << s << " at " << Simulator::Now ().GetSeconds ()) ;
-}
-
 
 int
 main (int argc, char *argv[])
@@ -150,11 +84,15 @@ main (int argc, char *argv[])
 	uint32_t minRTO = rtt*1.5;
 
   int64_t flowlet_gap = rtt;
+  double flowlet_gap_scaling = 1;
 
 
   bool animation = false;
   bool monitor = false;
   bool debug = false;
+  double recordingTime = 1;
+  double stopThreshold = 0.7;
+
 
   //error model
   std::string errorLink = "r_0_a0->r_c0";
@@ -186,11 +124,15 @@ main (int argc, char *argv[])
 	//Experiment
 	cmd.AddValue("SimulationTime", "Total simulation time (flow starting time is scheduled until that time, "
 			"the simulation time will be extended by the longest flow scheduled close to simulationTime", simulationTime);
+	cmd.AddValue("RecordingTime", "Time we measure flows once reached % of load", recordingTime);
+	cmd.AddValue("StopThreshold", "Time we measure flows once reached % of load", stopThreshold);
+
 	cmd.AddValue("IntraPodProb","Probability of picking a destination inside the same pod", intraPodProb);
 	cmd.AddValue("InterPodProb", "Probability of picking a destination in another pod", interPodProb);
 	cmd.AddValue("InterArrivalFlowTime", "flows we start per second", interArrivalFlowsTime);
 	cmd.AddValue("SizeDistribution", "File with the flows size distribution", sizeDistributionFile);
   cmd.AddValue("QueueSize", "Interfaces Queue length", queue_size);
+  cmd.AddValue("FlowletGapScaling", "Inter-arrival packet time for flowlet expiration", flowlet_gap_scaling);
   cmd.AddValue("FlowletGap", "Inter-arrival packet time for flowlet expiration", flowlet_gap);
   cmd.AddValue("K", "Fat tree size", k);
   cmd.AddValue("RunStep", "Random generator starts at", runStep);
@@ -205,64 +147,103 @@ main (int argc, char *argv[])
 //		LogComponentEnable("Ipv4GlobalRouting", LOG_DEBUG);
 		//LogComponentEnable("Ipv4GlobalRouting", LOG_ERROR);
 		LogComponentEnable("fat-tree", LOG_ERROR);
-		LogComponentEnable("utils", LOG_ERROR);
+		LogComponentEnable("utils", LOG_DEBUG);
 		LogComponentEnable("traffic-generation", LOG_DEBUG);
+		LogComponentEnable("custom-bulk-app", LOG_DEBUG);
+		//LogComponentEnable("PacketSink", LOG_ALL);
+		//LogComponentEnable("TcpSocketBase", LOG_ALL);
+
 	}
 
   //Update root name
 	std::ostringstream run;
 	run << runStep;
 
-  outputNameRoot = outputNameRoot + outputFolder + "/" + fileNameRoot;
-  outputNameFct = outputNameRoot + "-" +  simulationName + "_" +  std::string(run.str()) + ".fct";
+  outputNameRoot = outputNameRoot + outputFolder + "/" + fileNameRoot + "-" + simulationName + "_" + std::string(run.str());
+  outputNameFct = outputNameRoot + ".fct";
 
   NS_LOG_UNCOND(outputNameRoot << " " <<  outputNameFct <<  " " << simulationName);
 
   //General default configurations
   //putting 1500bytes into the wire
   double packetDelay = double(1500*8)/DataRate(linkBandiwdth).GetBitRate();
-	rtt = 12*delay + (12*Seconds(packetDelay).GetMicroSeconds());
+	double small_packetDelay = double(58*8)/DataRate(linkBandiwdth).GetBitRate();
 
-	packetDelay = double(58*8)/DataRate(linkBandiwdth).GetBitRate();
+	rtt = 12*delay + (6*Seconds(packetDelay).GetMicroSeconds()) + (6*Seconds(small_packetDelay).GetMicroSeconds());
+
 	int small_rtt = 12*delay + (12*Seconds(packetDelay).GetMicroSeconds());
 
 	minRTO = rtt*2;
 
-  flowlet_gap = rtt/2; //milliseconds
+  flowlet_gap = rtt*flowlet_gap_scaling; //milliseconds
 
-  //Routing
-  Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
-  Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
-  Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", IntegerValue(MicroSeconds(flowlet_gap).GetNanoSeconds()));
+
+  NS_LOG_UNCOND("rtt: " << rtt << " minRTO: " << minRTO << " flowlet_gap: " << flowlet_gap
+   		<< " delay: " << delay << " packetDelay: " << Seconds(packetDelay).GetMicroSeconds()
+ 			<< "small_rtt: "<< small_rtt <<" Flowlet gap:" << flowlet_gap << " Microseconds");
 
   //TCP
-  NS_LOG_UNCOND("rtt: " << rtt << " minRTO: " << minRTO << " flowlet_gap: " << flowlet_gap
-  		<< " delay: " << delay << " packetDelay: " << Seconds(packetDelay).GetMicroSeconds() << "small_rtt: "<< small_rtt << " Microseconds");
 
-//  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1500000000));
-//  Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1500000000));
+  //GLOBAL CONFIGURATION
 
-	Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (TcpNewReno::GetTypeId ()));
-	Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(rtt)));
+   //Routing
+   Config::SetDefault("ns3::Ipv4GlobalRouting::EcmpMode", StringValue(ecmpMode));
+   Config::SetDefault ("ns3::Ipv4GlobalRouting::RespondToInterfaceEvents", BooleanValue (true));
 
-	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MicroSeconds(minRTO))); //min RTO value that can be set
-	Config::SetDefault ("ns3::TcpSocketBase::MaxSegLifetime",DoubleValue(120));
-  Config::SetDefault ("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(10)); //same than DupAckThreshold
-  Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue(MicroSeconds(5)));
+   //Flowlet Switching
+   Config::SetDefault("ns3::Ipv4GlobalRouting::FlowletGap", IntegerValue(MicroSeconds(flowlet_gap).GetNanoSeconds()));
 
-	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1446)); //MTU
-	Config::SetDefault ("ns3::TcpSocket::DataRetries", UintegerValue (10)); //retranmissions
-	Config::SetDefault ("ns3::TcpSocket::ConnCount",UintegerValue(10)); //retrnamissions during connection
-	//Can be much slower than my rtt because packet size of syn is 60bytes
-	Config::SetDefault ("ns3::TcpSocket::ConnTimeout",TimeValue(MicroSeconds(4*small_rtt))); // connection retransmission timeout
+   //Dirll LB
+   Config::SetDefault("ns3::Ipv4GlobalRouting::DrillRandomChecks", UintegerValue(2));
+   Config::SetDefault("ns3::Ipv4GlobalRouting::DrillMemoryUnits", UintegerValue(1));
 
 
-	Config::SetDefault ("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(2*rtt)));
-	Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+ 	//Tcp Socket (general socket conf)
+//   Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(150000000));
+//   Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(150000000));
+ 	Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1446)); //MTU
+ 	Config::SetDefault ("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(4294967295));
+ 	Config::SetDefault ("ns3::TcpSocket::InitialCwnd", UintegerValue(1));
+ 	//Can be much slower than my rtt because packet size of syn is 60bytes
+ 	Config::SetDefault ("ns3::TcpSocket::ConnTimeout",TimeValue(MicroSeconds(10*small_rtt))); // connection retransmission timeout
+ 	Config::SetDefault ("ns3::TcpSocket::ConnCount",UintegerValue(10)); //retrnamissions during connection
+ 	Config::SetDefault ("ns3::TcpSocket::DataRetries", UintegerValue (10)); //retranmissions
+ 	Config::SetDefault ("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(rtt)));
+ 	Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+ 	Config::SetDefault ("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); //disable nagle's algorithm
+ 	Config::SetDefault ("ns3::TcpSocket::PersistTimeout", TimeValue(NanoSeconds(6000000000))); //persist timeout to porbe for rx window
 
-	Config::SetDefault ("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(4294967295));
-	Config::SetDefault ("ns3::TcpSocket::InitialCwnd", UintegerValue(1));
-	Config::SetDefault ("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); //disable nagle's algorithm
+ 	//Tcp Socket Base: provides connection orientation, sliding window, flow control; congestion control is delegated to the subclasses (i.e new reno)
+
+ 	Config::SetDefault ("ns3::TcpSocketBase::MaxSegLifetime",DoubleValue(10));
+// 	Config::SetDefault ("ns3::TcpSocketBase::Sack", BooleanValue(true)); //enable sack
+ 	Config::SetDefault ("ns3::TcpSocketBase::MinRto",TimeValue(MicroSeconds(minRTO))); //min RTO value that can be set
+   Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue(MicroSeconds(1)));
+   Config::SetDefault ("ns3::TcpSocketBase::ReTxThreshold", UintegerValue(3)); //same than DupAckThreshold
+ //	Config::SetDefault ("ns3::TcpSocketBase::LimitedTransmit",BooleanValue(true)); //enable sack
+
+ 	//TCP L4
+ 	Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (TcpNewReno::GetTypeId ()));
+ 	Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(rtt)));
+
+ 	//QUEUES
+ 	//PFIFO
+ 	Config::SetDefault ("ns3::PfifoFastQueueDisc::Limit", UintegerValue (queue_size));
+
+ 	//RED configuration
+  //Config::SetDefault ("ns3::RedQueueDisc::Mode", StringValue ("QUEUE_MODE_BYTES"));
+  // Config::SetDefault ("ns3::RedQueueDisc::MeanPktSize", UintegerValue (1000));
+  //Config::SetDefault ("ns3::RedQueueDisc::Wait", BooleanValue (true));
+  //Config::SetDefault ("ns3::RedQueueDisc::Gentle", BooleanValue (true));
+  //Config::SetDefault ("ns3::RedQueueDisc::QW", DoubleValue (0.005));
+  //Config::SetDefault ("ns3::RedQueueDisc::MinTh", DoubleValue (25));
+  //Config::SetDefault ("ns3::RedQueueDisc::MaxTh", DoubleValue (50));
+  //Config::SetDefault ("ns3::RedQueueDisc::QueueLimit", UintegerValue (queue_size*1500));
+
+
+   TrafficControlHelper tchRed;
+   tchRed.SetRootQueueDisc ("ns3::RedQueueDisc", "LinkBandwidth", DataRateValue (DataRate (linkBandiwdth)),
+                            "LinkDelay", TimeValue(MicroSeconds(delay)));
 
 
 
@@ -289,8 +270,10 @@ main (int argc, char *argv[])
   csma.SetChannelAttribute ("Delay", TimeValue (MicroSeconds(delay)));
   csma.SetDeviceAttribute("Mtu", UintegerValue(1500));
 
+  csma.SetQueue("ns3::DropTailQueue", "Mode", StringValue("QUEUE_MODE_PACKETS"));
+//  csma.SetQueue("ns3::DropTailQueue", "Mode", EnumValue(DropTailQueue::QUEUE_MODE_BYTES));
+//  csma.SetQueue("ns3::DropTailQueue", "MaxBytes", UintegerValue(queue_size*1500));
   csma.SetQueue("ns3::DropTailQueue", "MaxPackets", UintegerValue(queue_size));
-
 
   //Compute Fat Tree Devices
 
@@ -495,22 +478,51 @@ main (int argc, char *argv[])
 
 //START TRAFFIC
 
+  //Special variables for interval tests.
+  double recordStartTime = 0;
+  uint64_t recordedFlowsCounter = 0;
 
 //  //Prepare sink app
-  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 2000, 1000 , protocol);
+  std::unordered_map <std::string, std::vector<uint16_t>> hostToPort = installSinks(hosts, 1000, 1000 , protocol);
 
   Ptr<OutputStreamWrapper> flowsCompletionTime = asciiTraceHelper.CreateFileStream (outputNameFct);
+  Ptr<OutputStreamWrapper> counterFile = asciiTraceHelper.CreateFileStream (outputNameRoot + ".counter");
+
 
   //NodeContainer tmp_hosts;
   //tmp_hosts.Add("h_0_0");
 //
 
   if (trafficPattern == "distribution"){
-  	sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime, sizeDistributionFile,runStep, interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime);
+  	sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime,counterFile, sizeDistributionFile,runStep,
+  			interArrivalFlowsTime, intraPodProb, interPodProb, simulationTime, &recordStartTime, recordingTime, &recordedFlowsCounter);
   }
   else if( trafficPattern == "stride"){
-	  startStride(hosts, hostToPort, BytesFromRate(DataRate("10Mbps"), 5), 1, 4,flowsCompletionTime);
+	  startStride(hosts, hostToPort, BytesFromRate(DataRate(linkBandiwdth), 2), 1, 16 ,flowsCompletionTime, counterFile);
   }
+
+  //Fill a structure with linkName->previousCounter
+  std::unordered_map<std::string, double> linkToPreviousLoad;
+
+  for(auto it = links.begin(); it != links.end(); it++){
+  	std::size_t found = it->first.find('h');
+  	if  (found != std::string::npos){
+  		linkToPreviousLoad[it->first + "_rx"] = 0;
+  		linkToPreviousLoad[it->first + "_tx"] = 0;
+
+  	}
+  }
+
+  network_load load_data;
+  load_data.stopThreshold = stopThreshold;
+  load_data.startTime = &recordStartTime;
+
+  network_metadata metadata;
+  metadata.k = uint32_t(k);
+  metadata.linkBandwidth = linkBandiwdth;
+
+  MeasureInOutLoad(links, linkToPreviousLoad, metadata, 0.5, load_data);
+
 
   //////////////////
   //TRACES
@@ -539,7 +551,7 @@ main (int argc, char *argv[])
 //  n0n1.Get (0)->TraceConnectWithoutContext ("PhyTxDrop", MakeBoundCallback (&TxDrop, "PhyTxDrop"));
 //  n0n1.Get (0)->TraceConnectWithoutContext ("MacTxDrop", MakeBoundCallback (&TxDrop, "MacTxDrop" ));
 
-  	links["h_0_0->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_0"));
+//  	links["h_0_0->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_0"));
   //links["h_0_1->r_0_e0"].Get (0)->TraceConnectWithoutContext ("MacTx", MakeBoundCallback (&TxDrop, "MacTx h_0_1"));
 
 //
@@ -549,8 +561,8 @@ main (int argc, char *argv[])
 
 //  	csma.EnablePcapAll(outputNameRoot, true);
 
-  csma.EnablePcap(outputNameFct, links["h_0_0->r_0_e0"].Get(0), bool(1));
-  csma.EnablePcap(outputNameFct, links["h_3_1->r_3_e0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["h_0_0->r_0_e0"].Get(0), bool(1));
+//  csma.EnablePcap(outputNameFct, links["h_3_1->r_3_e0"].Get(0), bool(1));
 
 //  csma.EnablePcap(outputNameFct, links["h_0_1->r_0_e0"].Get(0), bool(1));
 //  csma.EnablePcap(outputNameFct, links["h_0_2->r_0_e1"].Get(0), bool(1));
@@ -565,16 +577,16 @@ main (int argc, char *argv[])
 		links[errorLink].Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 		links[errorLink].Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
-		PcapHelper pcapHelper;
-		Ptr<PcapFileWrapper> drop_pcap = pcapHelper.CreateFile (outputNameRoot+"-drops.pcap", std::ios::out, PcapHelper::DLT_PPP);
-
-		Ptr<OutputStreamWrapper> drop_ascii = asciiTraceHelper.CreateFileStream (outputNameRoot+"-drops");
+//		PcapHelper pcapHelper;
+//		Ptr<PcapFileWrapper> drop_pcap = pcapHelper.CreateFile (outputNameRoot+"-drops.pcap", std::ios::out, PcapHelper::DLT_PPP);
+//
+		Ptr<OutputStreamWrapper> drop_ascii = asciiTraceHelper.CreateFileStream (outputNameRoot+".drops");
 
 		links[errorLink].Get (0)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropAscii, drop_ascii));
 		links[errorLink].Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropAscii, drop_ascii));
-
-		links[errorLink].Get (0)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropPcap, drop_pcap));
-		links[errorLink].Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropPcap, drop_pcap));
+//
+//		links[errorLink].Get (0)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropPcap, drop_pcap));
+//		links[errorLink].Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDropPcap, drop_pcap));
 
   }
 
@@ -624,9 +636,13 @@ main (int argc, char *argv[])
   	flowMonitor = flowHelper.InstallAll ();
   }
 
-  //Simulator::Schedule(Seconds(1), &printNow, 0.5);
+//  Simulator::Schedule(Seconds(1), &printNow, 0.25);
 
-  Simulator::Stop (Seconds (300));
+	Ptr<OutputStreamWrapper> time_file = asciiTraceHelper.CreateFileStream (outputNameRoot + ".time");
+  Simulator::Schedule(Seconds(1), &saveNow, 0.25, time_file);
+
+
+  Simulator::Stop (Seconds (50));
   Simulator::Run ();
 
 

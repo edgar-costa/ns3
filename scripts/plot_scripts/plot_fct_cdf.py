@@ -14,7 +14,7 @@ if __name__ == "__main__":
         
     test_seed = sys.argv[2]
 
-    root_path = "/home/edgar/ns-allinone-3.26/ns-3.26/outputs/{0}".format(test_name)
+    root_path = "/home/edgar/ns-3-dev-git/outputs/{0}".format(test_name)
     root_name = "fat-tree-{0}_{1}_{2}.fct"
 
     plt.figure(1)
