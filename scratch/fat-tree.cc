@@ -491,7 +491,8 @@ main (int argc, char *argv[])
 
   //NodeContainer tmp_hosts;
   //tmp_hosts.Add("h_0_0");
-//
+//s
+
 
   if (trafficPattern == "distribution"){
   	sendFromDistribution(hosts, hostToPort, k , flowsCompletionTime,counterFile, sizeDistributionFile,runStep,
